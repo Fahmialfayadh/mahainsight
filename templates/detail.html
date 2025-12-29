@@ -71,31 +71,42 @@
                     </div>
                 </div>
 
-                <!-- Visualization with Lazy Loading - Responsive Height -->
+                <!-- Visualization Container -->
                 <div class="relative" id="viz-container-{{ loop.index }}">
-                    <div id="vizLoading-{{ loop.index }}"
-                        class="absolute inset-0 flex items-center justify-center bg-white z-10">
-                        <div class="text-center">
-                            <div
-                                class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-slate-200 border-t-slate-600 mb-2">
-                            </div>
-                            <p class="text-xs text-slate-400">Memuat visualisasi...</p>
+
+                    <!-- Mobile: Show placeholder with "View Interactive" button -->
+                    <div class="md:hidden">
+                        <div
+                            class="aspect-[4/3] bg-slate-100 flex flex-col items-center justify-center p-6 text-center viz-placeholder-{{ loop.index }}">
+                            <i class="bi bi-graph-up text-4xl text-slate-300 mb-3"></i>
+                            <p class="text-sm text-slate-500 mb-4">Visualisasi interaktif tersedia</p>
+                            <button
+                                onclick="openVizFocusMode({{ loop.index }}, '{{ url_for('viz_proxy', url=viz.url) }}')"
+                                class="px-5 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition flex items-center gap-2">
+                                <i class="bi bi-arrows-fullscreen"></i> Lihat Visualisasi Interaktif
+                            </button>
+                            <p class="text-xs text-slate-400 mt-3">Ketuk untuk mode fokus (zoom & pan)</p>
                         </div>
                     </div>
-                    <!-- Responsive: 4:3 aspect ratio on mobile, fixed height on desktop -->
-                    <div class="aspect-[4/3] md:aspect-auto md:h-[550px]">
-                        <iframe data-src="{{ url_for('viz_proxy', url=viz.url) }}"
-                            class="w-full h-full border-0 viz-iframe"
-                            onload="this.dataset.loaded && document.getElementById('vizLoading-{{ loop.index }}').classList.add('hidden')"
-                            loading="lazy"></iframe>
-                    </div>
-                </div>
 
-                <!-- Mobile Touch Hint -->
-                <div class="md:hidden px-4 py-2 bg-slate-50 border-t border-slate-100 text-center">
-                    <p class="text-xs text-slate-400 flex items-center justify-center gap-1.5">
-                        <i class="bi bi-hand-index"></i> Pinch untuk zoom, geser untuk pan
-                    </p>
+                    <!-- Desktop: Show iframe directly -->
+                    <div class="hidden md:block">
+                        <div id="vizLoading-{{ loop.index }}"
+                            class="absolute inset-0 flex items-center justify-center bg-white z-10">
+                            <div class="text-center">
+                                <div
+                                    class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-slate-200 border-t-slate-600 mb-2">
+                                </div>
+                                <p class="text-xs text-slate-400">Memuat visualisasi...</p>
+                            </div>
+                        </div>
+                        <div class="h-[550px]">
+                            <iframe data-src="{{ url_for('viz_proxy', url=viz.url) }}"
+                                class="w-full h-full border-0 viz-iframe"
+                                onload="this.dataset.loaded && document.getElementById('vizLoading-{{ loop.index }}').classList.add('hidden')"
+                                loading="lazy"></iframe>
+                        </div>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -411,6 +422,69 @@
                     iframe.dataset.loaded = 'true';
                 }
             });
+        }
+    });
+
+    // ============== MOBILE FOCUS MODE ==============
+    let focusModeActive = false;
+    let focusModeOverlay = null;
+
+    function openVizFocusMode(index, iframeSrc) {
+        focusModeActive = true;
+
+        // Create overlay
+        focusModeOverlay = document.createElement('div');
+        focusModeOverlay.id = 'viz-focus-overlay';
+        focusModeOverlay.className = 'fixed inset-0 z-[100] bg-white flex flex-col';
+        focusModeOverlay.innerHTML = `
+            <div class="flex items-center justify-between px-4 py-3 bg-slate-900 text-white">
+                <span class="text-sm font-medium">Mode Fokus - Visualisasi ${index}</span>
+                <button onclick="closeVizFocusMode()" class="p-2 hover:bg-white/10 rounded-lg transition">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="flex-1 relative">
+                <div id="focus-loading" class="absolute inset-0 flex items-center justify-center bg-white">
+                    <div class="text-center">
+                        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-slate-600 mb-3"></div>
+                        <p class="text-sm text-slate-500">Memuat visualisasi...</p>
+                    </div>
+                </div>
+                <iframe src="${iframeSrc}" 
+                    class="w-full h-full border-0" 
+                    onload="document.getElementById('focus-loading').style.display='none'"
+                    style="touch-action: pan-x pan-y pinch-zoom;"></iframe>
+            </div>
+            <div class="px-4 py-2 bg-slate-100 text-center text-xs text-slate-500">
+                <i class="bi bi-hand-index-thumb"></i> Pinch untuk zoom, geser untuk pan. Ketuk X untuk keluar.
+            </div>
+        `;
+
+        document.body.appendChild(focusModeOverlay);
+        document.body.style.overflow = 'hidden';
+
+        // Prevent viewport zoom on the iframe
+        document.querySelector('meta[name="viewport"]')?.setAttribute('content',
+            'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+
+    function closeVizFocusMode() {
+        if (focusModeOverlay) {
+            focusModeOverlay.remove();
+            focusModeOverlay = null;
+        }
+        focusModeActive = false;
+        document.body.style.overflow = '';
+
+        // Restore viewport zoom
+        document.querySelector('meta[name="viewport"]')?.setAttribute('content',
+            'width=device-width, initial-scale=1.0');
+    }
+
+    // ESC to close focus mode
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && focusModeActive) {
+            closeVizFocusMode();
         }
     });
 </script>
