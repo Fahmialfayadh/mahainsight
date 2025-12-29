@@ -4,7 +4,7 @@
 {% block description %}{{ post.preview }}{% endblock %}
 
 {% block content %}
-<article class="pt-32 pb-20">
+<article class="pt-28 md:pt-32 pb-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- Header -->
@@ -35,10 +35,77 @@
         </figure>
         {% endif %}
 
-        <!-- Floating Action Bar -->
-        <div class="sticky top-24 z-30 mb-12">
+        <!-- Interactive Plotly Visualizations (supports multiple) -->
+        {% if post.viz_urls or post.viz_url %}
+        <section class="mb-12 space-y-6" id="visualization-section">
+            {% set visualizations = post.viz_urls|default([]) %}
+            {% if post.viz_url and not post.viz_urls %}
+            {% set visualizations = [{'url': post.viz_url, 'title': 'Visualisasi'}] %}
+            {% endif %}
+
+            {% for viz in visualizations %}
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden viz-card"
+                id="viz-{{ loop.index }}">
+                <!-- Simple Header -->
+                <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 text-sm font-semibold">
+                            {{ loop.index }}
+                        </span>
+                        <h3 class="font-medium text-slate-800 text-sm">
+                            {{ viz.title|default('Visualisasi ' ~ loop.index) }}
+                        </h3>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="toggleVizFullscreen({{ loop.index }})"
+                            class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition"
+                            title="Fullscreen">
+                            <i class="bi bi-arrows-fullscreen text-sm" id="fs-icon-{{ loop.index }}"></i>
+                        </button>
+                        <a href="{{ viz.url }}" target="_blank"
+                            class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition"
+                            title="Buka di Tab Baru">
+                            <i class="bi bi-box-arrow-up-right text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Visualization with Lazy Loading - Responsive Height -->
+                <div class="relative" id="viz-container-{{ loop.index }}">
+                    <div id="vizLoading-{{ loop.index }}"
+                        class="absolute inset-0 flex items-center justify-center bg-white z-10">
+                        <div class="text-center">
+                            <div
+                                class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-slate-200 border-t-slate-600 mb-2">
+                            </div>
+                            <p class="text-xs text-slate-400">Memuat visualisasi...</p>
+                        </div>
+                    </div>
+                    <!-- Responsive: 4:3 aspect ratio on mobile, fixed height on desktop -->
+                    <div class="aspect-[4/3] md:aspect-auto md:h-[550px]">
+                        <iframe data-src="{{ url_for('viz_proxy', url=viz.url) }}"
+                            class="w-full h-full border-0 viz-iframe"
+                            onload="this.dataset.loaded && document.getElementById('vizLoading-{{ loop.index }}').classList.add('hidden')"
+                            loading="lazy"></iframe>
+                    </div>
+                </div>
+
+                <!-- Mobile Touch Hint -->
+                <div class="md:hidden px-4 py-2 bg-slate-50 border-t border-slate-100 text-center">
+                    <p class="text-xs text-slate-400 flex items-center justify-center gap-1.5">
+                        <i class="bi bi-hand-index"></i> Pinch untuk zoom, geser untuk pan
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Action Bar - Static on mobile, sticky on desktop -->
+        <div class="md:sticky md:top-24 z-30 mb-8">
             <div
-                class="bg-white/80 backdrop-blur-md border border-white/50 shadow-lg shadow-slate-200/50 rounded-2xl p-2 flex flex-wrap justify-center gap-2 max-w-fit mx-auto">
+                class="bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm rounded-xl p-2 flex flex-wrap justify-center gap-1 md:gap-2 max-w-fit mx-auto">
                 <a href="#content"
                     class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
                     <i class="bi bi-text-paragraph"></i> Baca
@@ -47,7 +114,7 @@
                 <!-- Download Data (Preview Trigger) -->
                 {% if post.data_url %}
                 <button onclick="previewData('{{ post.data_url }}')"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 transition flex items-center gap-2">
+                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
                     <i class="bi bi-table"></i> Preview Data
                 </button>
                 {% else %}
@@ -272,6 +339,78 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
             closeModal();
+        }
+    });
+
+    // ============== MULTI-VISUALIZATION FULLSCREEN ==============
+    let activeFullscreen = null;
+
+    function toggleVizFullscreen(index) {
+        const container = document.getElementById('viz-container-' + index);
+        const iframe = container.querySelector('iframe');
+        const icon = document.getElementById('fs-icon-' + index);
+
+        if (activeFullscreen === index) {
+            // Exit fullscreen
+            container.classList.remove('fixed', 'inset-0', 'z-50', 'bg-white', 'p-4');
+            iframe.style.height = '500px';
+            icon.classList.remove('bi-fullscreen-exit');
+            icon.classList.add('bi-arrows-fullscreen');
+            document.body.style.overflow = '';
+            activeFullscreen = null;
+        } else {
+            // Exit any other fullscreen first
+            if (activeFullscreen !== null) {
+                toggleVizFullscreen(activeFullscreen);
+            }
+            // Enter fullscreen
+            container.classList.add('fixed', 'inset-0', 'z-50', 'bg-white', 'p-4');
+            iframe.style.height = 'calc(100vh - 32px)';
+            icon.classList.remove('bi-arrows-fullscreen');
+            icon.classList.add('bi-fullscreen-exit');
+            document.body.style.overflow = 'hidden';
+            activeFullscreen = index;
+        }
+    }
+
+    // ESC to exit fullscreen
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && activeFullscreen !== null) {
+            toggleVizFullscreen(activeFullscreen);
+        }
+    });
+
+    // ============== LAZY LOAD VISUALIZATIONS ==============
+    // Only load iframes when they come into view
+    document.addEventListener('DOMContentLoaded', function () {
+        const vizIframes = document.querySelectorAll('.viz-iframe');
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const iframe = entry.target;
+                        if (iframe.dataset.src && !iframe.src) {
+                            iframe.src = iframe.dataset.src;
+                            iframe.dataset.loaded = 'true';
+                        }
+                        observer.unobserve(iframe);
+                    }
+                });
+            }, {
+                rootMargin: '100px',  // Start loading 100px before entering viewport
+                threshold: 0.01
+            });
+
+            vizIframes.forEach(iframe => observer.observe(iframe));
+        } else {
+            // Fallback for older browsers
+            vizIframes.forEach(iframe => {
+                if (iframe.dataset.src) {
+                    iframe.src = iframe.dataset.src;
+                    iframe.dataset.loaded = 'true';
+                }
+            });
         }
     });
 </script>

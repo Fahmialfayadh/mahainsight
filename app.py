@@ -5,9 +5,15 @@ Flask application for publishing data analysis insights.
 import os
 import re
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from dotenv import load_dotenv
 import markdown2
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+import requests
+from io import StringIO
+import json
 
 from db import (
     get_all_posts, get_post_by_slug, create_post, 
@@ -104,6 +110,221 @@ def detail(slug):
     return render_template("detail.html", post=post)
 
 
+@app.route("/viz-proxy")
+def viz_proxy():
+    """
+    Proxy endpoint to serve Plotly HTML files with correct headers.
+    Optimized with caching for better performance.
+    """
+    from flask import Response
+    import hashlib
+    
+    viz_url = request.args.get("url")
+    if not viz_url:
+        return "URL parameter required", 400
+    
+    try:
+        # Fetch HTML from Supabase
+        response = requests.get(viz_url, timeout=30)
+        response.raise_for_status()
+        
+        content = response.content
+        
+        # Generate ETag for caching
+        etag = hashlib.md5(content).hexdigest()
+        
+        # Check if client has cached version
+        if request.headers.get('If-None-Match') == etag:
+            return Response(status=304)
+        
+        # Serve with aggressive caching headers
+        return Response(
+            content,
+            mimetype='text/html',
+            headers={
+                'Content-Type': 'text/html; charset=utf-8',
+                'X-Frame-Options': 'SAMEORIGIN',
+                'Cache-Control': 'public, max-age=86400, immutable',  # 24 hours
+                'ETag': etag,
+                'Vary': 'Accept-Encoding'
+            }
+        )
+    except requests.RequestException as e:
+        return f"Error fetching visualization: {str(e)}", 500
+
+
+@app.route("/api/plotly-chart")
+def plotly_chart():
+    """
+    Generate Plotly chart from CSV data URL.
+    Supports multiple chart types with auto-detection.
+    
+    Query params:
+    - url: CSV file URL
+    - chart_type: 'auto', 'map', 'bar', 'line', 'scatter', 'pie' (default: 'auto')
+    - x: column name for x-axis (optional)
+    - y: column name for y-axis (optional)
+    - color: column name for color (optional)
+    """
+    data_url = request.args.get("url")
+    chart_type = request.args.get("chart_type", "auto")
+    x_col = request.args.get("x")
+    y_col = request.args.get("y")
+    color_col = request.args.get("color")
+    
+    if not data_url:
+        return jsonify({"error": "URL parameter is required"}), 400
+    
+    try:
+        # Fetch CSV data
+        response = requests.get(data_url, timeout=10)
+        response.raise_for_status()
+        df = pd.read_csv(StringIO(response.text))
+        
+        if df.empty:
+            return jsonify({"error": "Dataset is empty"}), 400
+        
+        # Clean column names
+        df.columns = df.columns.str.strip()
+        
+        # Auto-detect chart type based on columns
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        text_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        
+        # Country detection for choropleth maps
+        country_keywords = ['country', 'negara', 'nation', 'state', 'province', 'region', 
+                           'country_code', 'iso_code', 'iso', 'location', 'lokasi']
+        country_col = None
+        for col in text_cols:
+            if any(kw in col.lower() for kw in country_keywords):
+                country_col = col
+                break
+        
+        # If auto, detect best chart type
+        if chart_type == "auto":
+            if country_col and len(numeric_cols) > 0:
+                chart_type = "map"
+            elif len(numeric_cols) >= 2:
+                chart_type = "scatter"
+            elif len(numeric_cols) >= 1 and len(text_cols) >= 1:
+                chart_type = "bar"
+            else:
+                chart_type = "table"
+        
+        # Generate chart based on type
+        fig = None
+        
+        if chart_type == "map" and country_col:
+            # Choropleth world map
+            value_col = y_col or (numeric_cols[0] if numeric_cols else None)
+            if value_col:
+                fig = px.choropleth(
+                    df,
+                    locations=country_col,
+                    locationmode="country names",
+                    color=value_col,
+                    hover_name=country_col,
+                    color_continuous_scale="Viridis",
+                    title=f"World Map: {value_col} by {country_col}"
+                )
+                fig.update_layout(
+                    geo=dict(
+                        showframe=False,
+                        showcoastlines=True,
+                        projection_type='equirectangular'
+                    )
+                )
+        
+        elif chart_type == "scatter":
+            x = x_col or (numeric_cols[0] if len(numeric_cols) > 0 else None)
+            y = y_col or (numeric_cols[1] if len(numeric_cols) > 1 else numeric_cols[0])
+            color = color_col or (text_cols[0] if text_cols else None)
+            
+            if x and y:
+                fig = px.scatter(
+                    df, x=x, y=y, color=color,
+                    title=f"Scatter: {y} vs {x}",
+                    hover_data=df.columns[:5].tolist()
+                )
+        
+        elif chart_type == "line":
+            x = x_col or (df.columns[0] if len(df.columns) > 0 else None)
+            y = y_col or (numeric_cols[0] if numeric_cols else None)
+            
+            if x and y:
+                fig = px.line(
+                    df, x=x, y=y,
+                    title=f"Line: {y} over {x}"
+                )
+        
+        elif chart_type == "bar":
+            x = x_col or (text_cols[0] if text_cols else df.columns[0])
+            y = y_col or (numeric_cols[0] if numeric_cols else None)
+            
+            if x and y:
+                # Limit to top 20 for readability
+                df_plot = df.nlargest(20, y) if len(df) > 20 else df
+                fig = px.bar(
+                    df_plot, x=x, y=y, color=color_col,
+                    title=f"Bar Chart: {y} by {x}"
+                )
+        
+        elif chart_type == "pie":
+            names = x_col or (text_cols[0] if text_cols else None)
+            values = y_col or (numeric_cols[0] if numeric_cols else None)
+            
+            if names and values:
+                # Limit to top 10 for pie chart
+                df_plot = df.nlargest(10, values) if len(df) > 10 else df
+                fig = px.pie(
+                    df_plot, names=names, values=values,
+                    title=f"Distribution: {values} by {names}"
+                )
+        
+        if fig is None:
+            # Fallback: show data summary
+            return jsonify({
+                "error": "Could not generate chart",
+                "columns": df.columns.tolist(),
+                "numeric_columns": numeric_cols,
+                "text_columns": text_cols,
+                "suggestion": "Try specifying x, y, and chart_type parameters"
+            }), 400
+        
+        # Apply consistent styling
+        fig.update_layout(
+            template="plotly_white",
+            margin=dict(l=20, r=20, t=60, b=20),
+            font=dict(family="Inter, sans-serif"),
+            title_font=dict(size=18, family="Outfit, sans-serif"),
+            hoverlabel=dict(
+                bgcolor="white",
+                font_size=13,
+                font_family="Inter, sans-serif"
+            )
+        )
+        
+        # Convert to JSON for frontend
+        chart_json = json.loads(pio.to_json(fig))
+        
+        return jsonify({
+            "success": True,
+            "chart": chart_json,
+            "metadata": {
+                "chart_type": chart_type,
+                "rows": len(df),
+                "columns": df.columns.tolist()
+            }
+        })
+        
+    except requests.RequestException as e:
+        return jsonify({"error": f"Failed to fetch data: {str(e)}"}), 500
+    except pd.errors.EmptyDataError:
+        return jsonify({"error": "CSV file is empty"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Error processing data: {str(e)}"}), 500
+
+
 # ============== AUTH ROUTES ==============
 
 @app.route("/login", methods=["GET", "POST"])
@@ -155,6 +376,7 @@ def admin_create():
         
         data_url = None
         thumbnail_url = None
+        viz_urls = []
         
         # Handle file uploads
         if "data_file" in request.files:
@@ -175,6 +397,23 @@ def admin_create():
                     folder="images"
                 )
         
+        # Handle multiple Plotly HTML visualization files
+        viz_files = request.files.getlist("viz_files[]")
+        viz_titles = request.form.getlist("viz_titles[]")
+        
+        for i, viz_file in enumerate(viz_files):
+            if viz_file and viz_file.filename:
+                url = upload_file(
+                    viz_file.read(),
+                    viz_file.filename,
+                    folder="visualizations"
+                )
+                title_text = viz_titles[i] if i < len(viz_titles) and viz_titles[i] else f"Visualisasi {i+1}"
+                viz_urls.append({
+                    "url": url,
+                    "title": title_text
+                })
+        
         try:
             create_post(
                 title=title,
@@ -183,7 +422,8 @@ def admin_create():
                 source_name=source_name,
                 source_link=source_link,
                 data_url=data_url,
-                thumbnail_url=thumbnail_url
+                thumbnail_url=thumbnail_url,
+                viz_urls=viz_urls if viz_urls else None
             )
             flash("Artikel berhasil dibuat!", "success")
             return redirect(url_for("admin"))
@@ -231,6 +471,41 @@ def admin_edit(post_id):
                     thumb_file.filename, 
                     folder="images"
                 )
+        
+        # Handle multiple Plotly HTML visualization files
+        viz_files = request.files.getlist("viz_files[]")
+        viz_titles = request.form.getlist("viz_titles[]")
+        
+        new_viz_urls = []
+        for i, viz_file in enumerate(viz_files):
+            if viz_file and viz_file.filename:
+                url = upload_file(
+                    viz_file.read(),
+                    viz_file.filename,
+                    folder="visualizations"
+                )
+                title_text = viz_titles[i] if i < len(viz_titles) and viz_titles[i] else f"Visualisasi {i+1}"
+                new_viz_urls.append({
+                    "url": url,
+                    "title": title_text
+                })
+        
+        # Handle deletion of existing visualizations
+        delete_indices_str = request.form.get("delete_viz_indices", "")
+        delete_indices = []
+        if delete_indices_str:
+            delete_indices = [int(x) for x in delete_indices_str.split(",") if x.strip()]
+        
+        # Get current viz_urls
+        existing = post.get("viz_urls") or []
+        
+        # Remove deleted items (process in reverse to maintain indices)
+        if delete_indices:
+            existing = [viz for i, viz in enumerate(existing) if i not in delete_indices]
+        
+        # Merge remaining + new
+        if delete_indices or new_viz_urls:
+            updates["viz_urls"] = existing + new_viz_urls if (existing or new_viz_urls) else None
         
         try:
             update_post(post_id, **updates)

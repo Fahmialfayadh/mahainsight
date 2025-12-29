@@ -42,8 +42,12 @@ def get_post_by_slug(slug: str):
 
 
 def create_post(title: str, slug: str, content_md: str, source_link: str, 
-                source_name: str, data_url: str = None, thumbnail_url: str = None):
-    """Create a new post."""
+                source_name: str, data_url: str = None, thumbnail_url: str = None,
+                viz_url: str = None, viz_urls: list = None):
+    """Create a new post.
+    
+    viz_urls should be a list of dicts: [{"url": "...", "title": "..."}, ...]
+    """
     supabase = get_supabase()
     data = {
         "title": title,
@@ -52,7 +56,9 @@ def create_post(title: str, slug: str, content_md: str, source_link: str,
         "source_link": source_link,
         "source_name": source_name,
         "data_url": data_url,
-        "thumbnail_url": thumbnail_url
+        "thumbnail_url": thumbnail_url,
+        "viz_url": viz_url,
+        "viz_urls": viz_urls  # JSON array for multiple visualizations
     }
     response = supabase.table("posts").insert(data).execute()
     return response.data
@@ -81,13 +87,24 @@ def upload_file(file_data: bytes, filename: str, folder: str = "datasets") -> st
     Args:
         file_data: Binary content of the file
         filename: Name of the file
-        folder: Folder in bucket (datasets or images)
+        folder: Folder in bucket (datasets, images, or visualizations)
     
     Returns:
         Public URL of the uploaded file
     """
+    import uuid
+    
     supabase = get_supabase()
-    file_path = f"{folder}/{filename}"
+    
+    # Add unique prefix to prevent duplicate filename errors
+    unique_id = uuid.uuid4().hex[:8]
+    name_parts = filename.rsplit('.', 1)
+    if len(name_parts) == 2:
+        unique_filename = f"{name_parts[0]}_{unique_id}.{name_parts[1]}"
+    else:
+        unique_filename = f"{filename}_{unique_id}"
+    
+    file_path = f"{folder}/{unique_filename}"
     
     # Upload to storage
     supabase.storage.from_(BUCKET_NAME).upload(
@@ -118,6 +135,9 @@ def get_content_type(filename: str) -> str:
         'jpg': 'image/jpeg',
         'jpeg': 'image/jpeg',
         'gif': 'image/gif',
-        'webp': 'image/webp'
+        'webp': 'image/webp',
+        'html': 'text/html',  # For Plotly HTML visualizations
+        'htm': 'text/html'
     }
     return content_types.get(ext, 'application/octet-stream')
+

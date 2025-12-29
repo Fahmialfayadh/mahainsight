@@ -115,6 +115,34 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Multiple Plotly HTML Visualizations -->
+            <div class="mt-6">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">
+                            📊 Visualisasi Interaktif Plotly (Multiple Files)
+                        </label>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Upload file HTML dari <code class="bg-gray-100 px-1 rounded">fig.write_html()</code>. Bisa
+                            upload banyak file.
+                        </p>
+                    </div>
+                    <button type="button" onclick="addVizField()"
+                        class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition flex items-center gap-1">
+                        <i class="bi bi-plus-lg"></i> Tambah Visualisasi
+                    </button>
+                </div>
+
+                <div id="viz-container-list" class="space-y-3">
+                    <!-- Dynamic viz fields will be added here -->
+                </div>
+
+                <p id="viz-empty-msg"
+                    class="text-sm text-gray-400 text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
+                    Belum ada visualisasi. Klik "Tambah Visualisasi" untuk menambahkan.
+                </p>
+            </div>
         </div>
 
         <!-- Source Section -->
@@ -197,6 +225,97 @@
     function updateFileName(input, targetId) {
         const fileName = input.files[0]?.name || 'Klik untuk upload file';
         document.getElementById(targetId).textContent = fileName;
+    }
+
+    // ========== MULTI-VISUALIZATION MANAGEMENT ==========
+    let vizCounter = 0;
+
+    function addVizField() {
+        vizCounter++;
+        const container = document.getElementById('viz-container-list');
+        const emptyMsg = document.getElementById('viz-empty-msg');
+        emptyMsg.classList.add('hidden');
+
+        const html = `
+        <div class="viz-item flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200" id="viz-item-${vizCounter}" data-index="${vizCounter}">
+            <div class="flex flex-col gap-1">
+                <button type="button" onclick="moveViz(${vizCounter}, -1)" class="p-1 text-slate-400 hover:text-slate-600">
+                    <i class="bi bi-chevron-up text-xs"></i>
+                </button>
+                <button type="button" onclick="moveViz(${vizCounter}, 1)" class="p-1 text-slate-400 hover:text-slate-600">
+                    <i class="bi bi-chevron-down text-xs"></i>
+                </button>
+            </div>
+            <span class="w-7 h-7 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600 viz-order">${vizCounter}</span>
+            <input type="text" name="viz_titles[]" placeholder="Judul visualisasi" 
+                class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500">
+            <div class="relative">
+                <input type="file" name="viz_files[]" accept=".html,.htm" id="viz-file-${vizCounter}" class="hidden" onchange="updateVizFileName(${vizCounter})">
+                <label for="viz-file-${vizCounter}" 
+                    class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 text-sm">
+                    <i class="bi bi-file-earmark-code text-slate-400"></i>
+                    <span id="viz-fname-${vizCounter}" class="text-slate-500">Pilih file HTML</span>
+                </label>
+            </div>
+            <button type="button" onclick="removeViz(${vizCounter})" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>`;
+
+        container.insertAdjacentHTML('beforeend', html);
+        updateVizOrders();
+    }
+
+    function removeViz(index) {
+        const item = document.getElementById('viz-item-' + index);
+        if (item) {
+            item.remove();
+            updateVizOrders();
+
+            const container = document.getElementById('viz-container-list');
+            const emptyMsg = document.getElementById('viz-empty-msg');
+            if (container.children.length === 0) {
+                emptyMsg.classList.remove('hidden');
+            }
+        }
+    }
+
+    function moveViz(index, direction) {
+        const container = document.getElementById('viz-container-list');
+        const item = document.getElementById('viz-item-' + index);
+        if (!item) return;
+
+        const items = Array.from(container.children);
+        const currentIdx = items.indexOf(item);
+        const newIdx = currentIdx + direction;
+
+        if (newIdx >= 0 && newIdx < items.length) {
+            if (direction === -1) {
+                container.insertBefore(item, items[newIdx]);
+            } else {
+                container.insertBefore(items[newIdx], item);
+            }
+            updateVizOrders();
+        }
+    }
+
+    function updateVizOrders() {
+        const container = document.getElementById('viz-container-list');
+        const items = container.querySelectorAll('.viz-item');
+        items.forEach((item, idx) => {
+            const orderSpan = item.querySelector('.viz-order');
+            if (orderSpan) orderSpan.textContent = idx + 1;
+        });
+    }
+
+    function updateVizFileName(index) {
+        const input = document.getElementById('viz-file-' + index);
+        const label = document.getElementById('viz-fname-' + index);
+        if (input.files[0]) {
+            label.textContent = input.files[0].name;
+            label.classList.remove('text-slate-500');
+            label.classList.add('text-slate-800');
+        }
     }
 
     // Prepare form submission - sync SimpleMDE content
