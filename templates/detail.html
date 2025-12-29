@@ -437,35 +437,87 @@
         focusModeOverlay.id = 'viz-focus-overlay';
         focusModeOverlay.className = 'fixed inset-0 z-[100] bg-white flex flex-col';
         focusModeOverlay.innerHTML = `
-            <div class="flex items-center justify-between px-4 py-3 bg-slate-900 text-white">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 py-3 bg-slate-900 text-white shrink-0">
                 <span class="text-sm font-medium">Mode Fokus - Visualisasi ${index}</span>
-                <button onclick="closeVizFocusMode()" class="p-2 hover:bg-white/10 rounded-lg transition">
+                <button onclick="closeVizFocusMode()" class="p-2 hover:bg-white/10 rounded-lg transition flex items-center gap-1">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
-            <div class="flex-1 relative">
-                <div id="focus-loading" class="absolute inset-0 flex items-center justify-center bg-white">
+            
+            <!-- Visualization -->
+            <div class="flex-1 relative overflow-hidden" id="focus-viz-container">
+                <div id="focus-loading" class="absolute inset-0 flex items-center justify-center bg-white z-10">
                     <div class="text-center">
                         <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-slate-600 mb-3"></div>
                         <p class="text-sm text-slate-500">Memuat visualisasi...</p>
                     </div>
                 </div>
-                <iframe src="${iframeSrc}" 
-                    class="w-full h-full border-0" 
+                <iframe id="focus-viz-iframe" src="${iframeSrc}" 
+                    class="w-full h-full border-0 origin-center transition-transform duration-200" 
                     onload="document.getElementById('focus-loading').style.display='none'"
-                    style="touch-action: pan-x pan-y pinch-zoom;"></iframe>
+                    style="transform: scale(1);"></iframe>
             </div>
-            <div class="px-4 py-2 bg-slate-100 text-center text-xs text-slate-500">
-                <i class="bi bi-hand-index-thumb"></i> Pinch untuk zoom, geser untuk pan. Ketuk X untuk keluar.
+            
+            <!-- Bottom Control Panel -->
+            <div class="shrink-0 bg-slate-100 border-t border-slate-200 px-4 py-3">
+                <!-- Instructions -->
+                <p class="text-xs text-slate-500 text-center mb-3">
+                    <i class="bi bi-info-circle"></i> Gunakan tombol di bawah untuk zoom dan geser visualisasi
+                </p>
+                
+                <!-- Zoom Controls -->
+                <div class="flex justify-center items-center gap-2">
+                    <button onclick="focusZoom('out')" 
+                        class="w-12 h-12 bg-white border border-slate-300 rounded-xl text-lg font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition shadow-sm flex items-center justify-center">
+                        <i class="bi bi-dash-lg"></i>
+                    </button>
+                    <button onclick="focusZoom('reset')" 
+                        class="px-4 h-12 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition shadow-sm">
+                        <i class="bi bi-arrow-counterclockwise mr-1"></i> Reset
+                    </button>
+                    <button onclick="focusZoom('in')" 
+                        class="w-12 h-12 bg-slate-900 rounded-xl text-lg font-bold text-white hover:bg-slate-800 active:bg-slate-700 transition shadow-sm flex items-center justify-center">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                </div>
+                
+                <!-- Zoom Level Indicator -->
+                <p class="text-center text-xs text-slate-400 mt-2" id="zoom-level-text">Zoom: 100%</p>
             </div>
         `;
 
         document.body.appendChild(focusModeOverlay);
         document.body.style.overflow = 'hidden';
 
-        // Prevent viewport zoom on the iframe
+        // Prevent viewport zoom
         document.querySelector('meta[name="viewport"]')?.setAttribute('content',
             'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+
+    // Zoom control
+    let currentZoom = 1;
+    const ZOOM_STEP = 0.2;
+    const MAX_ZOOM = 3;
+    const MIN_ZOOM = 0.5;
+
+    function focusZoom(action) {
+        const iframe = document.getElementById('focus-viz-iframe');
+        const zoomText = document.getElementById('zoom-level-text');
+        if (!iframe) return;
+
+        if (action === 'in' && currentZoom < MAX_ZOOM) {
+            currentZoom += ZOOM_STEP;
+        } else if (action === 'out' && currentZoom > MIN_ZOOM) {
+            currentZoom -= ZOOM_STEP;
+        } else if (action === 'reset') {
+            currentZoom = 1;
+        }
+
+        iframe.style.transform = `scale(${currentZoom})`;
+        if (zoomText) {
+            zoomText.textContent = `Zoom: ${Math.round(currentZoom * 100)}%`;
+        }
     }
 
     function closeVizFocusMode() {
@@ -474,6 +526,7 @@
             focusModeOverlay = null;
         }
         focusModeActive = false;
+        currentZoom = 1; // Reset zoom for next open
         document.body.style.overflow = '';
 
         // Restore viewport zoom
