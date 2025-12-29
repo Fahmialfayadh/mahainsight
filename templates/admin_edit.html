@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Artikel - MahaInsight{% endblock %}
+
+{% block extra_head %}
+<!-- SimpleMDE CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{{ url_for('admin') }}"
+            class="inline-flex items-center text-gray-500 hover:text-primary-600 transition mb-4">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Kembali ke Dashboard
+        </a>
+        <h1 class="font-display text-3xl font-bold text-gray-800">Edit Artikel</h1>
+        <p class="text-gray-600 mt-1">Perbarui konten artikel: <strong>{{ post.title }}</strong></p>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" action="{{ url_for('admin_edit', post_id=post.id) }}" enctype="multipart/form-data"
+        class="space-y-8" onsubmit="return prepareSubmit()">
+        <!-- Basic Info Section -->
+        <div class="glass rounded-2xl p-6">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-6 flex items-center">
+                <span class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3 text-sm">1</span>
+                Informasi Dasar
+            </h2>
+
+            <div class="space-y-6">
+                <!-- Title -->
+                <div>
+                    <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Judul Artikel <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="title" name="title" required value="{{ post.title }}"
+                        class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                </div>
+
+                <!-- Slug -->
+                <div>
+                    <label for="slug" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Slug (URL)
+                    </label>
+                    <div class="flex items-center">
+                        <span
+                            class="px-4 py-3 bg-gray-100 border border-r-0 border-gray-200 rounded-l-xl text-gray-500 text-sm">/post/</span>
+                        <input type="text" id="slug" name="slug" value="{{ post.slug }}"
+                            class="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files Section -->
+        <div class="glass rounded-2xl p-6">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-6 flex items-center">
+                <span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3 text-sm">2</span>
+                File & Visualisasi
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Data File -->
+                <div>
+                    <label for="data_file" class="block text-sm font-semibold text-gray-700 mb-2">
+                        💾 File Data (CSV/Excel)
+                    </label>
+                    {% if post.data_url %}
+                    <div class="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p class="text-sm text-green-700">
+                            ✓ File saat ini: <a href="{{ post.data_url }}" target="_blank"
+                                class="underline">Download</a>
+                        </p>
+                    </div>
+                    {% endif %}
+                    <div class="relative">
+                        <input type="file" id="data_file" name="data_file" accept=".csv,.xlsx,.xls" class="hidden"
+                            onchange="updateFileName(this, 'data_file_name')">
+                        <label for="data_file"
+                            class="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition">
+                            <div class="text-center">
+                                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                    </path>
+                                </svg>
+                                <p id="data_file_name" class="text-sm text-gray-500">Upload file baru (opsional)</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Thumbnail -->
+                <div>
+                    <label for="thumbnail_file" class="block text-sm font-semibold text-gray-700 mb-2">
+                        🖼️ Visualisasi Utama (Gambar)
+                    </label>
+                    {% if post.thumbnail_url %}
+                    <div class="mb-3">
+                        <img src="{{ post.thumbnail_url }}" alt="Current thumbnail"
+                            class="w-full h-24 object-cover rounded-lg">
+                    </div>
+                    {% endif %}
+                    <div class="relative">
+                        <input type="file" id="thumbnail_file" name="thumbnail_file" accept="image/*" class="hidden"
+                            onchange="updateFileName(this, 'thumbnail_file_name')">
+                        <label for="thumbnail_file"
+                            class="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-accent-400 hover:bg-accent-50/30 transition">
+                            <div class="text-center">
+                                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                <p id="thumbnail_file_name" class="text-sm text-gray-500">Upload gambar baru (opsional)
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Section -->
+        <div class="glass rounded-2xl p-6">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-6 flex items-center">
+                <span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 text-sm">3</span>
+                Sumber Data
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Source Name -->
+                <div>
+                    <label for="source_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Nama Sumber
+                    </label>
+                    <input type="text" id="source_name" name="source_name" value="{{ post.source_name or '' }}"
+                        placeholder="Contoh: BPS Jatim 2024"
+                        class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                </div>
+
+                <!-- Source Link -->
+                <div>
+                    <label for="source_link" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Link Sumber
+                    </label>
+                    <input type="url" id="source_link" name="source_link" value="{{ post.source_link or '' }}"
+                        placeholder="https://..."
+                        class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="glass rounded-2xl p-6">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-6 flex items-center">
+                <span class="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center mr-3 text-sm">4</span>
+                Konten Artikel (Markdown)
+            </h2>
+
+            <textarea id="content_md" name="content_md" class="w-full">{{ post.content_md }}</textarea>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center justify-between">
+            <button type="button" onclick="deletePost()"
+                class="px-6 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl font-semibold transition">
+                🗑️ Hapus Artikel
+            </button>
+
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('admin') }}"
+                    class="px-6 py-3 text-gray-600 hover:text-gray-800 font-semibold transition">
+                    Batal
+                </a>
+                <button type="submit"
+                    class="px-8 py-3 bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/30 transition transform hover:scale-[1.02]">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- SimpleMDE JS -->
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+<script>
+    // Initialize SimpleMDE
+    var simplemde = new SimpleMDE({
+        element: document.getElementById("content_md"),
+        spellChecker: false,
+        toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "side-by-side", "fullscreen", "|", "guide"]
+    });
+
+    // Update file name display
+    function updateFileName(input, targetId) {
+        const fileName = input.files[0]?.name || 'Upload file baru (opsional)';
+        document.getElementById(targetId).textContent = fileName;
+    }
+
+    // Prepare form submission - sync SimpleMDE content
+    function prepareSubmit() {
+        const content = simplemde.value();
+        document.getElementById('content_md').value = content;
+
+        const title = document.getElementById('title').value.trim();
+        if (!title) {
+            alert('Judul artikel harus diisi!');
+            return false;
+        }
+        if (!content || content.trim() === '') {
+            alert('Konten artikel harus diisi!');
+            return false;
+        }
+        return true;
+    }
+
+    // Delete post via separate form
+    function deletePost() {
+        if (confirm('Yakin ingin menghapus artikel ini secara permanen?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_delete", post_id=post.id) }}';
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}
