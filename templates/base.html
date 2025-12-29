@@ -187,20 +187,20 @@
             </div>
         </div>
 
-        <!-- Mobile Menu Overlay -->
+        <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu"
-            class="fixed inset-0 bg-white/95 backdrop-blur-xl z-40 transform translate-x-full transition-transform duration-300 md:hidden flex items-center justify-center">
-            <div class="flex flex-col items-center gap-8 p-8 w-full max-w-sm">
+            class="hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-slate-100 shadow-xl transition-all duration-300 origin-top">
+            <div class="flex flex-col p-6 gap-4">
                 <a href="{{ url_for('index') }}"
-                    class="text-2xl font-display font-bold text-slate-900 hover:text-brand-600 mobile-link">Eksplorasi</a>
+                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Eksplorasi</a>
                 {% if session.get('logged_in') %}
                 <a href="{{ url_for('admin') }}"
-                    class="text-2xl font-display font-bold text-slate-900 hover:text-brand-600 mobile-link">Dashboard</a>
+                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Dashboard</a>
                 <a href="{{ url_for('logout') }}"
-                    class="text-xl font-medium text-red-500 hover:text-red-600 mobile-link">Keluar</a>
+                    class="mobile-link text-lg font-display font-medium text-red-500 hover:text-red-600 py-2">Keluar</a>
                 {% else %}
                 <a href="{{ url_for('login') }}"
-                    class="px-8 py-3 rounded-full bg-brand-600 text-white text-lg font-medium shadow-lg hover:shadow-brand-500/25 mobile-link">
+                    class="mobile-link w-full text-center px-6 py-3 rounded-xl bg-brand-600 text-white text-base font-medium shadow-lg hover:shadow-brand-500/25 transition">
                     Masuk
                 </a>
                 {% endif %}
@@ -208,25 +208,27 @@
         </div>
     </nav>
 
-    <!-- Flash Messages -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div
-            class="mb-4 p-4 rounded-xl flex items-center gap-3 shadow-sm border
-                        {% if category == 'success' %}bg-green-50 border-green-100 text-green-700{% elif category == 'error' %}bg-red-50 border-red-100 text-red-700{% else %}bg-blue-50 border-blue-100 text-blue-700{% endif %}">
-            <i
-                class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'error' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
-            <span class="text-sm font-medium">{{ message }}</span>
+    <!-- Flash Messages (Wrapped in container for push effect) -->
+    <div id="flash-container" class="transition-all duration-300">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div
+                class="mb-4 p-4 rounded-xl flex items-center gap-3 shadow-sm border
+                            {% if category == 'success' %}bg-green-50 border-green-100 text-green-700{% elif category == 'error' %}bg-red-50 border-red-100 text-red-700{% else %}bg-blue-50 border-blue-100 text-blue-700{% endif %}">
+                <i
+                    class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'error' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+                <span class="text-sm font-medium">{{ message }}</span>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
     </div>
 
     <!-- Main Content -->
-    <main class="flex-grow">
+    <main id="main-content" class="flex-grow transition-all duration-300">
         {% block content %}{% endblock %}
     </main>
 
@@ -254,30 +256,42 @@
         const mobileMenu = document.getElementById('mobile-menu');
         const menuIcon = document.getElementById('menu-icon');
         const mobileLinks = document.querySelectorAll('.mobile-link');
+        const mainContent = document.getElementById('main-content');
+        const flashContainer = document.getElementById('flash-container'); // Handle Flash too
 
         // Mobile Menu Toggle
         mobileBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('translate-x-full');
+            mobileMenu.classList.toggle('hidden');
 
             // Toggle Icon
-            if (mobileMenu.classList.contains('translate-x-full')) {
+            if (mobileMenu.classList.contains('hidden')) {
+                // CLOSED
                 menuIcon.classList.remove('bi-x');
                 menuIcon.classList.add('bi-list');
-                document.body.style.overflow = '';
+
+                // Reset Push
+                mainContent.style.marginTop = '0px';
+                flashContainer.style.marginTop = '0px';
             } else {
+                // OPENED
                 menuIcon.classList.remove('bi-list');
                 menuIcon.classList.add('bi-x');
-                document.body.style.overflow = 'hidden'; // Prevent scrolling when menu open
+
+                // Push Content Down
+                // We add margin equal to menu height to the first content container
+                const menuHeight = mobileMenu.scrollHeight;
+                flashContainer.style.marginTop = menuHeight + 'px';
             }
         });
 
         // Close menu when clicking links
         mobileLinks.forEach(link => {
             link.addEventListener('click', () => {
-                mobileMenu.classList.add('translate-x-full');
+                mobileMenu.classList.add('hidden');
                 menuIcon.classList.remove('bi-x');
                 menuIcon.classList.add('bi-list');
-                document.body.style.overflow = '';
+                mainContent.style.marginTop = '0px';
+                flashContainer.style.marginTop = '0px';
             });
         });
 
@@ -286,6 +300,9 @@
         const threshold = 100;
 
         window.addEventListener('scroll', () => {
+            // Don't hide navbar if mobile menu is open
+            if (!mobileMenu.classList.contains('hidden')) return;
+
             const currentScroll = window.pageYOffset;
 
             // Determine scroll direction
