@@ -15,7 +15,7 @@ import requests
 from io import StringIO
 import json
 from groq import Groq
-
+import numpy as np
 from db import (
     get_all_posts, get_post_by_slug, create_post, 
     update_post, delete_post, upload_file,
