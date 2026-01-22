@@ -58,218 +58,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet">
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6,
-        .font-display {
-            font-family: 'Outfit', sans-serif;
-        }
-
-        /* Blur Blobs Background */
-        .blob-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-            overflow: hidden;
-            pointer-events: none;
-            background: #fff;
-        }
-
-        .blob {
-            position: absolute;
-            filter: blur(80px);
-            opacity: 0.6;
-            border-radius: 50%;
-        }
-
-        .blob-1 {
-            top: -10%;
-            left: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: #ede9fe;
-        }
-
-        .blob-2 {
-            bottom: -10%;
-            right: -10%;
-            width: 40vw;
-            height: 40vw;
-            background: #f5f3ff;
-        }
-
-        .blob-3 {
-            top: 40%;
-            left: 40%;
-            width: 30vw;
-            height: 30vw;
-            background: #f3e8ff;
-            opacity: 0.4;
-        }
-
-        /* Typography */
-        .prose h1 {
-            color: #4c1d95;
-        }
-
-        .prose a {
-            color: #7c3aed;
-            text-decoration: none;
-        }
-
-        .prose a:hover {
-            text-decoration: underline;
-        }
-
-        .prose blockquote {
-            border-left-color: #7c3aed;
-            background: #f5f3ff;
-            padding: 1rem;
-            border-radius: 0.5rem;
-        }
-
-        /* Extended Prose Styling for Markdown */
-        .prose {
-            font-size: 1.125rem;
-            line-height: 1.75;
-            color: #334155;
-        }
-
-        .prose h1,
-        .prose h2,
-        .prose h3,
-        .prose h4,
-        .prose h5,
-        .prose h6 {
-            font-weight: 700;
-            margin-top: 2em;
-            margin-bottom: 0.75em;
-            line-height: 1.3;
-        }
-
-        .prose h1 {
-            font-size: 2.25em;
-            margin-top: 0;
-        }
-
-        .prose h2 {
-            font-size: 1.75em;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 0.5em;
-        }
-
-        .prose h3 {
-            font-size: 1.375em;
-        }
-
-        .prose h4 {
-            font-size: 1.125em;
-        }
-
-        .prose p {
-            margin-top: 1.25em;
-            margin-bottom: 1.25em;
-        }
-
-        .prose ul,
-        .prose ol {
-            margin-top: 1.25em;
-            margin-bottom: 1.25em;
-            padding-left: 1.5em;
-        }
-
-        .prose li {
-            margin-top: 0.5em;
-            margin-bottom: 0.5em;
-        }
-
-        .prose ul>li {
-            list-style-type: disc;
-        }
-
-        .prose ol>li {
-            list-style-type: decimal;
-        }
-
-        .prose li::marker {
-            color: #7c3aed;
-        }
-
-        .prose strong {
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .prose em {
-            font-style: italic;
-        }
-
-        .prose code {
-            background: #f1f5f9;
-            padding: 0.2em 0.4em;
-            border-radius: 0.25em;
-            font-size: 0.875em;
-            font-family: 'Fira Code', monospace;
-            color: #7c3aed;
-        }
-
-        .prose pre {
-            background: #1e293b;
-            color: #e2e8f0;
-            padding: 1.25em;
-            border-radius: 0.75em;
-            overflow-x: auto;
-            margin: 1.5em 0;
-        }
-
-        .prose pre code {
-            background: transparent;
-            padding: 0;
-            color: inherit;
-        }
-
-        .prose table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5em 0;
-            font-size: 0.9em;
-        }
-
-        .prose th,
-        .prose td {
-            border: 1px solid #e2e8f0;
-            padding: 0.75em 1em;
-            text-align: left;
-        }
-
-        .prose th {
-            background: #f8fafc;
-            font-weight: 600;
-        }
-
-        .prose hr {
-            border: none;
-            border-top: 2px solid #e2e8f0;
-            margin: 2em 0;
-        }
-
-        .prose img {
-            border-radius: 0.75rem;
-            margin: 1.5em auto;
-            max-width: 100%;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/base.css') }}">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -302,19 +91,36 @@
                         class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">Eksplorasi</a>
                     <a href="https://mahalabs.space"
                         class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">mahalabs</a>
-                
-                    {% if session.get('logged_in') %}
+
+                    {% if session.get('is_admin') %}
                     <a href="{{ url_for('admin') }}"
-                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Dashboard</a>
-                    <a href="{{ url_for('logout') }}"
-                        class="text-sm font-medium text-red-500 hover:text-red-600 transition-colors">Keluar</a>
-                    {% else %}
-                    <a href="{{ url_for('login') }}"
-                        class="px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                        Masuk
-                    </a>
+                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Admin</a>
                     {% endif %}
                 </div>
+
+                <!-- Auth Buttons for User -->
+                {% if session.get('user_id') %}
+                <div class="hidden md:flex items-center gap-4 border-l border-slate-200 pl-4 ml-2">
+                    <span class="text-sm font-medium text-slate-600">
+                        Halo, {{ session.get('user_name', 'User') }}
+                    </span>
+                    <a href="{{ url_for('logout_page') }}"
+                        class="text-sm font-medium text-slate-500 hover:text-brand-600 transition">
+                        Keluar
+                    </a>
+                </div>
+                {% else %}
+                <div class="hidden md:flex items-center gap-3 border-l border-slate-200 pl-4 ml-2">
+                    <a href="{{ url_for('login_page') }}"
+                        class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-brand-600 transition">
+                        Masuk
+                    </a>
+                    <a href="{{ url_for('register_page') }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition">
+                        Daftar
+                    </a>
+                </div>
+                {% endif %}
 
                 <!-- Mobile Menu Button -->
                 <button id="mobile-menu-btn"
@@ -332,17 +138,30 @@
                     class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Eksplorasi</a>
                 <a href="https://mahalabs.space"
                     class="mobile-link text-lg font-display font-medium text-slate-700 hover:text-brand-60">Mahalabs</a>
-                {% if session.get('logged_in') %}
+
+                {% if session.get('is_admin') %}
                 <a href="{{ url_for('admin') }}"
-                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Dashboard</a>
-                <a href="{{ url_for('logout') }}"
-                    class="mobile-link text-lg font-display font-medium text-red-500 hover:text-red-600 py-2">Keluar</a>
+                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Admin</a>
+                {% endif %}
+
+                {% if session.get('user_id') %}
+                <div class="pt-4 mt-4 border-t border-slate-50">
+                    <span class="block text-sm font-medium text-slate-500 mb-2">Halo, {{ session.get('user_name')
+                        }}</span>
+                    <a href="{{ url_for('logout_page') }}"
+                        class="mobile-link text-lg font-display font-medium text-red-500 hover:text-red-600 py-2">Keluar</a>
+                </div>
                 {% else %}
-                <a href="{{ url_for('login') }}"
+                <a href="{{ url_for('login_page') }}"
                     class="mobile-link w-full text-center px-6 py-3 rounded-xl bg-brand-600 text-white text-base font-medium shadow-lg hover:shadow-brand-500/25 transition">
                     Masuk
                 </a>
+                <a href="{{ url_for('register_page') }}"
+                    class="mobile-link w-full text-center px-6 py-3 rounded-xl border-2 border-brand-600 text-brand-600 text-base font-medium hover:bg-brand-50 transition">
+                    Daftar
+                </a>
                 {% endif %}
+
             </div>
         </div>
     </nav>
@@ -389,82 +208,8 @@
 
     {% block extra_scripts %}{% endblock %}
     <!-- Mobile Menu & Scroll Script -->
-    <script>
-        const navbar = document.getElementById('navbar');
-        const mobileBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const menuIcon = document.getElementById('menu-icon');
-        const mobileLinks = document.querySelectorAll('.mobile-link');
-        const mainContent = document.getElementById('main-content');
-        const flashContainer = document.getElementById('flash-container'); // Handle Flash too
-
-        // Mobile Menu Toggle
-        mobileBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-
-            // Toggle Icon
-            if (mobileMenu.classList.contains('hidden')) {
-                // CLOSED
-                menuIcon.classList.remove('bi-x');
-                menuIcon.classList.add('bi-list');
-
-                // Reset Push
-                mainContent.style.marginTop = '0px';
-                flashContainer.style.marginTop = '0px';
-            } else {
-                // OPENED
-                menuIcon.classList.remove('bi-list');
-                menuIcon.classList.add('bi-x');
-
-                // Push Content Down
-                // We add margin equal to menu height to the first content container
-                const menuHeight = mobileMenu.scrollHeight;
-                flashContainer.style.marginTop = menuHeight + 'px';
-            }
-        });
-
-        // Close menu when clicking links
-        mobileLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-                menuIcon.classList.remove('bi-x');
-                menuIcon.classList.add('bi-list');
-                mainContent.style.marginTop = '0px';
-                flashContainer.style.marginTop = '0px';
-            });
-        });
-
-        // Scroll Behavior (Pop out / Autohide)
-        let lastScroll = 0;
-        const threshold = 100;
-
-        window.addEventListener('scroll', () => {
-            // Don't hide navbar if mobile menu is open
-            if (!mobileMenu.classList.contains('hidden')) return;
-
-            const currentScroll = window.pageYOffset;
-
-            // Determine scroll direction
-            if (currentScroll > lastScroll && currentScroll > threshold) {
-                // Scrolling Down -> Hide Navbar
-                navbar.classList.add('-translate-y-full');
-            } else {
-                // Scrolling Up -> Show Navbar
-                navbar.classList.remove('-translate-y-full');
-            }
-
-            // Add shadow when scrolled
-            if (currentScroll > 20) {
-                navbar.classList.add('shadow-md');
-                navbar.classList.replace('bg-white/70', 'bg-white/90');
-            } else {
-                navbar.classList.remove('shadow-md');
-                navbar.classList.replace('bg-white/90', 'bg-white/70');
-            }
-
-            lastScroll = currentScroll;
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/font-manager.js') }}"></script>
 </body>
 
 </html>

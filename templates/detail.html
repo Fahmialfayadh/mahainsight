@@ -5,7 +5,7 @@
 
 {% block content %}
 <article class="pt-28 md:pt-32 pb-20">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- Header -->
         <header class="text-center mb-12">
@@ -114,43 +114,159 @@
         {% endif %}
 
         <!-- Action Bar - Static on mobile, sticky on desktop -->
-        <div class="md:sticky md:top-24 z-30 mb-8">
+        <div class="md:top-24 z-30 mb-8">
             <div
                 class="bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm rounded-xl p-2 flex flex-wrap justify-center gap-1 md:gap-2 max-w-fit mx-auto">
-                <a href="#content"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
-                    <i class="bi bi-text-paragraph"></i> Baca
-                </a>
 
-                <!-- Download Data (Preview Trigger) -->
+
+
+                <!-- primary ACTIONS -->
                 {% if post.data_url %}
                 <button onclick="previewData('{{ post.data_url }}')"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
+                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition flex items-center gap-2">
                     <i class="bi bi-table"></i> Preview Data
                 </button>
-                {% else %}
-                <span
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 cursor-not-allowed flex items-center gap-2">
-                    <i class="bi bi-slash-circle"></i> No Data
-                </span>
                 {% endif %}
 
                 {% if post.source_link %}
                 <a href="{{ post.source_link }}" target="_blank" rel="noopener noreferrer"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
+                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition flex items-center gap-2">
                     <i class="bi bi-box-arrow-up-right"></i> Sumber
                 </a>
                 {% endif %}
+
+                <a href="#ai-chat"
+                    class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-800 bg-slate-200 hover:bg-slate-300 shadow-md shadow-slate-300/40 transition flex items-center gap-2">
+                    <i class="bi bi-chat-dots-fill"></i> Vercax AI
+                </a>
+                <!-- CTA -->
+                {% if post.petasight_link %}
+                <a href="{{ post.petasight_link }}" target="_blank" rel="noopener noreferrer"
+                    class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition flex items-center gap-2">
+                    <i class="bi bi-map-fill"></i> Petasight
+                </a>
+                {% endif %}
+                <!-- secondary MENU -->
+                <div class="relative group">
+                    <button
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition flex items-center gap-2">
+                        <i class="bi bi-three-dots"></i> Lainnya
+                    </button>
+
+                    <div
+                        class="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+
+                        <a href="#content"
+                            class="px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                            <i class="bi bi-text-paragraph"></i> Baca Artikel
+                        </a>
+
+                        <!-- Font Switcher -->
+                        <div class="mt-1 border-t border-slate-100 pt-1">
+                            <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Font
+                            </div>
+                            <div id="font-options-container">
+                                <!-- injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
         </div>
 
+
         <!-- Content - Paper/Canvas Style -->
         <div class="bg-[#FFFDF9] rounded-2xl shadow-lg shadow-slate-200/50 ring-1 ring-slate-100 p-6 sm:p-10 md:p-12">
-            <div id="content"
+            <div id="content" style="font-family: var(--article-font, var(--font-body))"
                 class="prose prose-lg prose-slate max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-brand-600 hover:prose-a:text-brand-700 prose-img:rounded-2xl">
                 {{ post.content_html|safe }}
             </div>
         </div>
+
+        <!-- AI Assistant Section -->
+        {% if session.get('user_id') %}
+        <div id="ai-chat">
+            <div
+                class="mt-8 bg-white rounded-2xl shadow-lg shadow-slate-200/50 ring-1 ring-slate-100 p-6 sm:p-10 border-t-4 border-brand-500">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-display font-bold text-slate-900 flex items-center gap-2">
+                        <i class="bi bi-robot text-brand-600"></i> Vercax AI
+                    </h2>
+                    <span class="px-3 py-1 bg-brand-50 text-brand-700 text-sm font-medium rounded-full"
+                        id="ai-counter-badge">
+                        <i class="bi bi-chat-dots"></i> Memuat...
+                    </span>
+                </div>
+
+                <!-- Summary Section -->
+                <div class="mb-8 p-6 bg-slate-50 rounded-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-slate-800">Ringkasan Artikel</h3>
+                        <button onclick="generateSummary()" id="btn-summary"
+                            class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm hover:bg-slate-100 transition shadow-sm">
+                            <i class="bi bi-magic mr-1"></i> Generate Summary
+                        </button>
+                    </div>
+                    <div id="ai-summary-content" class="prose prose-sm text-slate-600 hidden">
+                        <!-- Summary injected here -->
+                    </div>
+                    <div id="summary-loading" class="hidden flex items-center gap-2 text-slate-500 text-sm">
+                        <div class="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin">
+                        </div>
+                        Sedang meringkas...
+                    </div>
+                </div>
+
+                <!-- Chat Interface -->
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <div id="chat-history" class="h-[30vh] overflow-y-auto p-4 bg-slate-50 flex flex-col gap-3">
+                        <div class="flex gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 shrink-0">
+                                <i class="bi bi-robot"></i>
+                            </div>
+                            <div
+                                class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 max-w-[85%]">
+                                Halo! Saya Vercax, AI dari MahaLabs. Ada yang ingin ditanyakan tentang data di artikel
+                                ini?
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-white border-t border-slate-200 flex gap-2">
+                        <input type="text" id="chat-input"
+                            class="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            placeholder="Tanya tentang insight data...">
+                        <button onclick="sendChat()" id="btn-send"
+                            class="px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div
+                class="mt-8 bg-gradient-to-br from-brand-600 to-indigo-600 rounded-2xl shadow-lg p-8 text-center text-white">
+                <div
+                    class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="bi bi-robot text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold mb-2">Buka Potensi AI Assistant</h2>
+                <p class="text-brand-100 mb-6 max-w-lg mx-auto">Dapatkan ringkasan instan dan tanya jawab interaktif
+                    tentang
+                    data di artikel ini. Daftar gratis sekarang!</p>
+                <div class="flex gap-4 justify-center">
+                    <a href="{{ url_for('register_page') }}"
+                        class="px-6 py-3 bg-white text-brand-600 font-semibold rounded-xl hover:bg-brand-50 transition shadow-lg">Daftar
+                        Akun</a>
+                    <a href="{{ url_for('login_page', next=request.path) }}"
+                        class="px-6 py-3 bg-brand-700/50 text-white font-semibold rounded-xl hover:bg-brand-700 transition backdrop-blur-sm border border-brand-500">Masuk</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Source Footer -->
         {% if post.source_name or post.source_link %}
@@ -254,293 +370,13 @@
 {% block extra_scripts %}
 <!-- PapaParse for CSV Parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- Marked for Markdown Rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
-    const modal = document.getElementById('dataModal');
-    const backdrop = document.getElementById('modalBackdrop');
-    const panel = document.getElementById('modalPanel');
-    const tableContainer = document.getElementById('tableContainer');
-    const loadingState = document.getElementById('loadingState');
-    const errorState = document.getElementById('errorState');
-    const downloadBtn = document.getElementById('downloadBtn');
-
-    function previewData(url) {
-        // Show modal
-        modal.classList.remove('hidden');
-        // Animate in
-        setTimeout(() => {
-            backdrop.classList.remove('opacity-0');
-            panel.classList.remove('opacity-0', 'scale-95');
-        }, 10);
-
-        // Set content
-        downloadBtn.href = url;
-        tableContainer.innerHTML = '';
-        tableContainer.classList.add('hidden');
-        errorState.classList.add('hidden');
-        loadingState.classList.remove('hidden');
-
-        // Fetch and parse
-        Papa.parse(url, {
-            download: true,
-            header: true,
-            preview: 20, // Limit rows for preview
-            skipEmptyLines: true,
-            complete: function (results) {
-                renderTable(results.data, results.meta.fields);
-                loadingState.classList.add('hidden');
-                tableContainer.classList.remove('hidden');
-            },
-            error: function (err) {
-                console.error(err);
-                loadingState.classList.add('hidden');
-                errorState.classList.remove('hidden');
-                document.getElementById('errorMessage').textContent = "Gagal parsing CSV: " + err.message;
-            }
-        });
-    }
-
-    function renderTable(data, headers) {
-        if (!data || data.length === 0) {
-            tableContainer.innerHTML = '<div class="p-8 text-center text-slate-500 text-sm">Data kosong</div>';
-            return;
-        }
-
-        let html = '<table class="min-w-full divide-y divide-slate-200 text-sm text-left">';
-
-        // Header
-        html += '<thead class="bg-slate-50"><tr>';
-        headers.forEach(h => {
-            html += `<th scope="col" class="px-3 py-3.5 font-semibold text-slate-900 whitespace-nowrap">${h}</th>`;
-        });
-        html += '</tr></thead>';
-
-        // Body
-        html += '<tbody class="divide-y divide-slate-200 bg-white">';
-        data.forEach(row => {
-            html += '<tr>';
-            headers.forEach(h => {
-                const cell = row[h] !== undefined ? row[h] : '';
-                // Truncate long text
-                const display = cell.length > 50 ? cell.substring(0, 50) + '...' : cell;
-                html += `<td class="px-3 py-4 text-slate-500 whitespace-nowrap" title="${cell}">${display}</td>`;
-            });
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-
-        tableContainer.innerHTML = html;
-    }
-
-    function closeModal() {
-        backdrop.classList.add('opacity-0');
-        panel.classList.add('opacity-0', 'scale-95');
-
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300); // Match transition duration
-    }
-
-    // Close on clicking backdrop
-    modal.addEventListener('click', function (e) {
-        if (e.target.id === 'modalBackdrop' || e.target.closest('#modalBackdrop')) {
-            closeModal();
-        }
-    });
-
-    // Close on ESC
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeModal();
-        }
-    });
-
-    // ============== MULTI-VISUALIZATION FULLSCREEN ==============
-    let activeFullscreen = null;
-
-    function toggleVizFullscreen(index) {
-        const container = document.getElementById('viz-container-' + index);
-        const iframe = container.querySelector('iframe');
-        const icon = document.getElementById('fs-icon-' + index);
-
-        if (activeFullscreen === index) {
-            // Exit fullscreen
-            container.classList.remove('fixed', 'inset-0', 'z-50', 'bg-white', 'p-4');
-            iframe.style.height = '500px';
-            icon.classList.remove('bi-fullscreen-exit');
-            icon.classList.add('bi-arrows-fullscreen');
-            document.body.style.overflow = '';
-            activeFullscreen = null;
-        } else {
-            // Exit any other fullscreen first
-            if (activeFullscreen !== null) {
-                toggleVizFullscreen(activeFullscreen);
-            }
-            // Enter fullscreen
-            container.classList.add('fixed', 'inset-0', 'z-50', 'bg-white', 'p-4');
-            iframe.style.height = 'calc(100vh - 32px)';
-            icon.classList.remove('bi-arrows-fullscreen');
-            icon.classList.add('bi-fullscreen-exit');
-            document.body.style.overflow = 'hidden';
-            activeFullscreen = index;
-        }
-    }
-
-    // ESC to exit fullscreen
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && activeFullscreen !== null) {
-            toggleVizFullscreen(activeFullscreen);
-        }
-    });
-
-    // ============== LAZY LOAD VISUALIZATIONS ==============
-    // Only load iframes when they come into view
-    document.addEventListener('DOMContentLoaded', function () {
-        const vizIframes = document.querySelectorAll('.viz-iframe');
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const iframe = entry.target;
-                        if (iframe.dataset.src && !iframe.src) {
-                            iframe.src = iframe.dataset.src;
-                            iframe.dataset.loaded = 'true';
-                        }
-                        observer.unobserve(iframe);
-                    }
-                });
-            }, {
-                rootMargin: '100px',  // Start loading 100px before entering viewport
-                threshold: 0.01
-            });
-
-            vizIframes.forEach(iframe => observer.observe(iframe));
-        } else {
-            // Fallback for older browsers
-            vizIframes.forEach(iframe => {
-                if (iframe.dataset.src) {
-                    iframe.src = iframe.dataset.src;
-                    iframe.dataset.loaded = 'true';
-                }
-            });
-        }
-    });
-
-    // ============== MOBILE FOCUS MODE ==============
-    let focusModeActive = false;
-    let focusModeOverlay = null;
-
-    function openVizFocusMode(index, iframeSrc) {
-        focusModeActive = true;
-
-        // Create overlay
-        focusModeOverlay = document.createElement('div');
-        focusModeOverlay.id = 'viz-focus-overlay';
-        focusModeOverlay.className = 'fixed inset-0 z-[100] bg-white flex flex-col';
-        focusModeOverlay.innerHTML = `
-            <!-- Header -->
-            <div class="flex items-center justify-between px-4 py-3 bg-slate-900 text-white shrink-0">
-                <span class="text-sm font-medium">Mode Fokus - Visualisasi ${index}</span>
-                <button onclick="closeVizFocusMode()" class="p-2 hover:bg-white/10 rounded-lg transition flex items-center gap-1">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </div>
-            
-            <!-- Visualization -->
-            <div class="flex-1 relative overflow-hidden" id="focus-viz-container">
-                <div id="focus-loading" class="absolute inset-0 flex items-center justify-center bg-white z-10">
-                    <div class="text-center">
-                        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-slate-600 mb-3"></div>
-                        <p class="text-sm text-slate-500">Memuat visualisasi...</p>
-                    </div>
-                </div>
-                <iframe id="focus-viz-iframe" src="${iframeSrc}" 
-                    class="w-full h-full border-0 origin-center transition-transform duration-200" 
-                    onload="document.getElementById('focus-loading').style.display='none'"
-                    style="transform: scale(1);"></iframe>
-            </div>
-            
-            <!-- Bottom Control Panel -->
-            <div class="shrink-0 bg-slate-100 border-t border-slate-200 px-4 py-3">
-                <!-- Instructions -->
-                <p class="text-xs text-slate-500 text-center mb-3">
-                    <i class="bi bi-info-circle"></i> Gunakan tombol di bawah untuk zoom dan geser visualisasi
-                </p>
-                
-                <!-- Zoom Controls -->
-                <div class="flex justify-center items-center gap-2">
-                    <button onclick="focusZoom('out')" 
-                        class="w-12 h-12 bg-white border border-slate-300 rounded-xl text-lg font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition shadow-sm flex items-center justify-center">
-                        <i class="bi bi-dash-lg"></i>
-                    </button>
-                    <button onclick="focusZoom('reset')" 
-                        class="px-4 h-12 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition shadow-sm">
-                        <i class="bi bi-arrow-counterclockwise mr-1"></i> Reset
-                    </button>
-                    <button onclick="focusZoom('in')" 
-                        class="w-12 h-12 bg-slate-900 rounded-xl text-lg font-bold text-white hover:bg-slate-800 active:bg-slate-700 transition shadow-sm flex items-center justify-center">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                </div>
-                
-                <!-- Zoom Level Indicator -->
-                <p class="text-center text-xs text-slate-400 mt-2" id="zoom-level-text">Zoom: 100%</p>
-            </div>
-        `;
-
-        document.body.appendChild(focusModeOverlay);
-        document.body.style.overflow = 'hidden';
-
-        // Prevent viewport zoom
-        document.querySelector('meta[name="viewport"]')?.setAttribute('content',
-            'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-    }
-
-    // Zoom control
-    let currentZoom = 1;
-    const ZOOM_STEP = 0.2;
-    const MAX_ZOOM = 3;
-    const MIN_ZOOM = 0.5;
-
-    function focusZoom(action) {
-        const iframe = document.getElementById('focus-viz-iframe');
-        const zoomText = document.getElementById('zoom-level-text');
-        if (!iframe) return;
-
-        if (action === 'in' && currentZoom < MAX_ZOOM) {
-            currentZoom += ZOOM_STEP;
-        } else if (action === 'out' && currentZoom > MIN_ZOOM) {
-            currentZoom -= ZOOM_STEP;
-        } else if (action === 'reset') {
-            currentZoom = 1;
-        }
-
-        iframe.style.transform = `scale(${currentZoom})`;
-        if (zoomText) {
-            zoomText.textContent = `Zoom: ${Math.round(currentZoom * 100)}%`;
-        }
-    }
-
-    function closeVizFocusMode() {
-        if (focusModeOverlay) {
-            focusModeOverlay.remove();
-            focusModeOverlay = null;
-        }
-        focusModeActive = false;
-        currentZoom = 1; // Reset zoom for next open
-        document.body.style.overflow = '';
-
-        // Restore viewport zoom
-        document.querySelector('meta[name="viewport"]')?.setAttribute('content',
-            'width=device-width, initial-scale=1.0');
-    }
-
-    // ESC to close focus mode
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && focusModeActive) {
-            closeVizFocusMode();
-        }
-    });
+    // Define global variable for external script
+    const CURRENT_POST_ID = {{ post.id }};
 </script>
+<script src="{{ url_for('static', filename='js/detail.js') }}"></script>
+<script src="{{ url_for('static', filename='js/font-manager.js') }}"></script>
 {% endblock %}

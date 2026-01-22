@@ -33,15 +33,26 @@
         </p>
 
         <!-- CTA & Search-like visual -->
-        <div class="relative max-w-lg mx-auto group">
-            <div
-                class="absolute -inset-1 bg-gradient-to-r from-brand-600 to-brand-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200">
+        <div class="relative max-w-lg mx-auto group z-10">
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                <!-- Petasight Button -->
+                <a href="#articles" class="relative flex items-center gap-3 bg-brand-600 text-white rounded-full px-6 py-4 shadow-xl shadow-brand-500/20 ring-1 ring-brand-500 hover:bg-brand-700 
+                            hover:-translate-y-0.5 transition-all cursor-pointer w-full sm:w-auto justify-center">
+                    <i class="bi bi-arrow-down-circle-fill text-xl text-white"></i>
+                    <span class="font-medium">Jelajahi Artikel</span>
+                </a>
+
+                <!-- Explore Articles Button -->
+                <a href="https://petasight.mahalabs.space"
+                    class="relative flex items-center gap-3 bg-white text-slate-600 rounded-full px-6 py-4 shadow-xl ring-1 ring-slate-900/5 hover:ring-brand-500 hover:text-brand-600 transition-all cursor-pointer w-full sm:w-auto justify-center">
+                    <span class="font-medium">Petasight</span>
+                    <i class="bi bi-map-fill text-lg text-brand-600"></i>
+                </a>
             </div>
-            <a href="#articles"
-                class="relative flex items-center justify-between bg-white text-slate-600 rounded-full px-6 py-4 shadow-xl ring-1 ring-slate-900/5 hover:ring-brand-500 transition-all cursor-pointer">
-                <span class="text-slate-400">Jelajahi Artikel...</span>
-                <i class="bi bi-arrow-down-circle-fill text-2xl text-brand-600"></i>
-            </a>
+            <!-- Decorative Glow -->
+            <div
+                class="absolute -inset-4 bg-gradient-to-r from-brand-600 to-brand-400 rounded-full blur-xl opacity-20 pointer-events-none group-hover:opacity-30 transition duration-500">
+            </div>
         </div>
     </div>
 </section>

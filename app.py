@@ -9,36 +9,49 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from dotenv import load_dotenv
 import markdown2
 import pandas as pd
-import plotly.express as px
-import plotly.io as pio
+# import plotly.express as px
+# import plotly.io as pio
 import requests
 from io import StringIO
 import json
+from groq import Groq
 
 from db import (
     get_all_posts, get_post_by_slug, create_post, 
-    update_post, delete_post, upload_file
+    update_post, delete_post, upload_file,
+    create_user, get_user_by_email, get_user_by_id,
+    get_all_users, set_admin_status,
+    get_user_ai_usage, increment_user_ai_usage
 )
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default-secret-key")
-ADMIN_PASS = os.getenv("ADMIN_PASS", "admin123")
-
 
 # ============== HELPERS ==============
 
 def login_required(f):
-    """Decorator to require admin login."""
+    """Decorator to require admin login (is_admin=True)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get("logged_in"):
-            flash("Silakan login terlebih dahulu.", "warning")
-            return redirect(url_for("login"))
+        if not session.get("is_admin"):
+            flash("Akses ditolak. Anda harus login sebagai admin.", "error")
+            return redirect(url_for("login_page"))
         return f(*args, **kwargs)
     return decorated_function
 
+
+def user_required(f):
+    """Decorator to require user login."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Silakan login user terlebih dahulu.", "warning")
+            return redirect(url_for("login_page"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def slugify(text: str) -> str:
     """Convert text to URL-friendly slug."""
@@ -54,7 +67,7 @@ def render_markdown(content: str) -> str:
         "fenced-code-blocks", 
         "tables", 
         "strike",
-        "break-on-newline"  # Convert single newlines to <br>
+        "break-on-newline"  
     ])
 
 
@@ -83,6 +96,98 @@ def strip_markdown(text: str) -> str:
     text = re.sub(r'\n+', ' ', text)
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
+
+
+def get_csv_context(data_url: str, query: str = None) -> str:
+    """Fetch CSV and generate a summary context with smart search."""
+    if not data_url:
+        return ""
+    try:
+        response = requests.get(data_url, timeout=10)
+        response.raise_for_status()
+        df = pd.read_csv(StringIO(response.text))
+        
+        # Create a summary of the data
+        buffer = StringIO()
+        df.info(buf=buffer)
+        info_str = buffer.getvalue()
+        
+        # explicit column list
+        columns = "\n".join([f"- {col} ({dtype})" for col, dtype in df.dtypes.items()])
+
+        # Helper for markdown table
+        def manual_to_markdown(d):
+            if d.empty: return ""
+            cols = d.columns.tolist()
+            # Header
+            res = ["| " + " | ".join(str(c) for c in cols) + " |"]
+            # Separator
+            res.append("| " + " | ".join(["---"] * len(cols)) + " |")
+            # Rows
+            for _, row in d.iterrows():
+                res.append("| " + " | ".join(str(val).replace("\n", " ") for val in row) + " |")
+            return "\n".join(res)
+
+        # 1. General Stats
+        try:
+            description = manual_to_markdown(df.describe().reset_index()) 
+        except: 
+            description = "No numerical stats available."
+
+        # 2. Sample Data (Head)
+        head = manual_to_markdown(df.head(5))
+
+        # 3. Smart Search (Relevant Rows)
+        relevant_rows = ""
+        if query:
+            # Simple keyword matching: split query into words, filter rows containing them
+            # Filter non-stopwords (very basic) to avoid matching "the", "a", etc. but maintain important ones
+            # For robustness, let's look for exact string matches in object columns
+            
+            # Normalize query: lowercase
+            q_lower = query.lower()
+            
+            # Find rows where any string column contains the query terms
+            # We'll try to match the whole phrase or significant words
+            
+            # Method: Concatenate all row values to string and search
+            # This is expensive for huge data but fine for typical 100-5000 row CSVs in this context
+            
+            # Efficient-ish search:
+            mask = np.column_stack([df[col].astype(str).str.contains(q_word, case=False, na=False) 
+                                    for col in df.columns 
+                                    for q_word in q_lower.split() if len(q_word) > 3])
+            
+            # If any column matched any significant word
+            if mask.any():
+                # Get matched rows (limit to top 5 matches to save context)
+                matched_row_indices = mask.any(axis=1)
+                matches = df[matched_row_indices].head(5)
+                
+                if not matches.empty:
+                    relevant_rows = f"""
+                    \nRELEVANT ROWS FOUND (Matches your query '{query}'):
+                    {manual_to_markdown(matches)}
+                    """
+        
+        context = f"""
+                    Dataset Overview:
+                    {info_str}
+
+                    Columns & Data Types:
+                    {columns}
+
+                    Statistical Summary:
+                    {description}
+
+                    Sample Data (First 5 Rows):
+                    {head}
+                    {relevant_rows}
+                     """
+        return context
+    except Exception as e:
+        print(f"Error fetching CSV context: {e}")
+        return f"Error loading dataset: {str(e)}"
 
 
 # ============== PUBLIC ROUTES ==============
@@ -153,8 +258,184 @@ def viz_proxy():
         return f"Error fetching visualization: {str(e)}", 500
 
 
-@app.route("/api/plotly-chart")
-def plotly_chart():
+@app.route("/api/ai/summary", methods=["POST"])
+@user_required
+def ai_summary():
+    """Generate article summary using Groq AI."""
+    """Generate article summary using Groq AI."""
+    
+    post_id = request.json.get("post_id")
+    if not post_id:
+        return jsonify({"error": "Post ID required"}), 400
+        
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return jsonify({"error": "AI service not configured (Missing API Key)"}), 503
+        
+    posts = get_all_posts()
+    post = next((p for p in posts if p["id"] == int(post_id)), None)
+    if not post:
+        return jsonify({"error": "Post not found"}), 404
+
+    try:
+        client = Groq(api_key=api_key)
+        
+        # Get data context if available
+        data_context = get_csv_context(post.get("data_url"))
+        
+        content = strip_markdown(post.get("content_md", ""))
+        
+        prompt = f"""
+        Your name is Vercax. You are a helpful data analyst assistant. 
+        Please provide a concise summary of the following article.
+        
+        Article Content:
+        {content[:4000]}  # Limit content length
+        
+        {f'Dataset Context based on attached CSV:{data_context}' if data_context else ''}
+        
+        Focus on the key insights and findings. Use Markdown formatting.
+        """
+        
+        completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant",
+        )
+        
+        return jsonify({
+            "summary": completion.choices[0].message.content
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai/chat", methods=["POST"])
+@user_required
+def ai_chat():
+    """Answer questions about the article/data using Groq AI."""
+    """Answer questions about the article/data using Groq AI."""
+    data = request.json
+    post_id = data.get("post_id")
+    question = data.get("question")
+    
+    if not post_id or not question:
+        return jsonify({"error": "Missing parameters"}), 400
+        
+    user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
+    
+    # === RATE LIMIT CHECK ===
+    remaining_quota = 3 # default
+    
+    if not is_admin:
+        # Regular users: Check DB usage
+        current_usage = get_user_ai_usage(user_id, post_id)
+        if current_usage >= 3:
+            return jsonify({
+                "error": "Limit exhausted", 
+                "message": "Anda telah mencapai batas 3 pertanyaan untuk artikel ini dalam 24 jam."
+            }), 429
+        remaining_quota = 3 - current_usage
+    else:
+        # Admins: Uncapped
+        remaining_quota = 999 
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return jsonify({"error": "AI service not configured"}), 503
+
+    posts = get_all_posts()
+    post = next((p for p in posts if p["id"] == int(post_id)), None)
+    if not post:
+        return jsonify({"error": "Post not found"}), 404
+
+    try:
+        client = Groq(api_key=api_key)
+        
+        # Use simple pandas Markdown for fallback if needed inside the engine, 
+        # but the engine handles formatting now.
+        
+        # === CALL PYTHON ANALYSIS ENGINE ===
+        from ai_engine.analysis import analyze_dataset
+        import json
+        
+        # The engine performs filtering and calculations based on the query
+        # Returns a Dict (Schema V2)
+        analysis_dict = analyze_dataset(post.get("data_url"), question)
+        
+        # Convert to strict JSON string for the LLM
+        analysis_json = json.dumps(analysis_dict, indent=2, default=str)
+        
+        content = strip_markdown(post.get("content_md", ""))
+        
+        system_prompt = f"""
+        You are Vercax, an expert data analyst AI for MahaInsight.
+        
+        Usage Instructions:
+        1. A Python Analysis Engine has ALREADY processed the user's question against the dataset.
+        2. It has provided the "PYTHON ANALYSIS RESULT" below in strictly structured JSON format.
+        3. **TRUST RULE**: The values in `aggregations` and `confidence` are calculated facts. Use them directly. Do not re-calculate.
+        4. **CONFIDENCE CHECK**: Look at `confidence.score`. If 'low', warn the user that the data is limited.
+        5. **CONTEXTUALIZE**: Use `metadata.units` to ensure every number you cite has the correct unit (%, USD, etc).
+
+        CONTEXT 1: The Article
+        {content[:3000]}
+
+        CONTEXT 2: PYTHON ANALYSIS RESULT (JSON)
+        ```json
+        {analysis_json}
+        ```
+
+        Answer the user's question using the specific facts, units, and stats found in Context 2.
+        """
+        
+        completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question}
+            ],
+            model="llama-3.1-8b-instant",
+        )
+        
+        
+        # Increment counter (if not admin, or we track admin usage too but don't limit?)
+        # Let's track everyone for analytics, but only limit non-admins
+        increment_user_ai_usage(user_id, post_id)
+        
+        # Calculate new remaining
+        if not is_admin:
+            new_remaining = remaining_quota - 1
+        else:
+            new_remaining = 999
+        
+        return jsonify({
+            "answer": completion.choices[0].message.content,
+            "remaining": new_remaining
+        })
+    except Exception as e:
+        print(f"AI Chat Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+
+@app.route("/api/ai/usage/<int:post_id>")
+def get_ai_usage_api(post_id):
+    """Get remaining usage for a user on a post."""
+    if not session.get("user_id"):
+        return jsonify({"remaining": 0, "is_admin": False})
+        
+    user_id = session.get("user_id")
+    is_admin = session.get("is_admin", False)
+    
+    if is_admin:
+        return jsonify({"remaining": 999, "is_admin": True})
+        
+    usage = get_user_ai_usage(user_id, post_id)
+    return jsonify({"remaining": max(0, 3 - usage), "is_admin": False})
+
+
+# @app.route("/api/plotly-chart")
+# def plotly_chart():
     """
     Generate Plotly chart from CSV data URL.
     Supports multiple chart types with auto-detection.
@@ -325,33 +606,101 @@ def plotly_chart():
         return jsonify({"error": f"Error processing data: {str(e)}"}), 500
 
 
+
 # ============== AUTH ROUTES ==============
 
 @app.route("/login", methods=["GET", "POST"])
-def login():
-    """Admin login page."""
-    if session.get("logged_in"):
-        return redirect(url_for("admin"))
-    
+def login_page():
+    # Helper to redirect logged-in users
+    if session.get("user_id"):
+        return redirect(url_for("admin") if session.get("is_admin") else url_for("index"))
+        
     if request.method == "POST":
+        email = request.form.get("email")
         password = request.form.get("password")
-        if password == ADMIN_PASS:
-            session["logged_in"] = True
-            flash("Login berhasil!", "success")
-            return redirect(url_for("admin"))
-        else:
-            flash("Password salah!", "error")
-    
-    return render_template("login.html")
+        
+        try:
+            user = get_user_by_email(email)
+            if user and check_password_hash(user["password_hash"], password):
+                session["user_id"] = user["id"]
+                session["user_name"] = user.get("full_name") or email.split("@")[0]
+                session["is_admin"] = user.get("is_admin", False)
+                
+                flash("Login berhasil!", "success")
+                
+                # Redirect based on role
+                if session["is_admin"]:
+                    return redirect(url_for("admin"))
+                else:
+                    return redirect(request.args.get("next") or url_for("index"))
+            else:
+                flash("Email atau password salah", "error")
+        except Exception as e:
+            flash("Email atau password salah", "error")
+            
+    return render_template("auth_login.html")
 
 
 @app.route("/logout")
-def logout():
-    """Logout and clear session."""
+def logout_page():
     session.clear()
     flash("Anda telah logout.", "info")
     return redirect(url_for("index"))
 
+# Backward compatibility routes (can be removed later)
+@app.route("/user-login")
+def user_login_redirect():
+    return redirect(url_for("login_page"))
+
+@app.route("/user-logout")
+def user_logout_redirect():
+    return redirect(url_for("logout_page"))
+
+
+
+
+# ============== USER AUTH ROUTES ==============
+
+@app.route("/register", methods=["GET", "POST"])
+def register_page():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+        
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        full_name = request.form.get("full_name")
+        
+        if not email or not password:
+            flash("Email dan password wajib diisi", "error")
+            return render_template("auth_register.html")
+            
+        # Check if user exists
+        try:
+            existing = get_user_by_email(email)
+            if existing:
+                flash("Email sudah terdaftar", "error")
+                return render_template("auth_register.html")
+        except:
+            # User likely doesn't exist (API error handling could be better)
+            pass
+            
+        try:
+            hashed = generate_password_hash(password)
+            create_user(email, hashed, full_name)
+            flash("Registrasi berhasil! Silakan login.", "success")
+            return redirect(url_for("login_page"))
+        except Exception as e:
+            flash(f"Error: {str(e)}", "error")
+            
+    return render_template("auth_register.html")
+
+
+            
+    return render_template("auth_register.html")
+
+
+# Old routes removed/redirected above
 
 # ============== ADMIN ROUTES ==============
 
@@ -373,6 +722,7 @@ def admin_create():
         content_md = request.form.get("content_md")
         source_name = request.form.get("source_name")
         source_link = request.form.get("source_link")
+        petasight_link = request.form.get("petasight_link")
         
         data_url = None
         thumbnail_url = None
@@ -423,7 +773,8 @@ def admin_create():
                 source_link=source_link,
                 data_url=data_url,
                 thumbnail_url=thumbnail_url,
-                viz_urls=viz_urls if viz_urls else None
+                viz_urls=viz_urls if viz_urls else None,
+                petasight_link=petasight_link
             )
             flash("Artikel berhasil dibuat!", "success")
             return redirect(url_for("admin"))
@@ -451,6 +802,7 @@ def admin_edit(post_id):
             "content_md": request.form.get("content_md"),
             "source_name": request.form.get("source_name"),
             "source_link": request.form.get("source_link"),
+            "petasight_link": request.form.get("petasight_link"),
         }
         
         # Handle file uploads (only if new files provided)
@@ -527,6 +879,42 @@ def admin_delete(post_id):
     except Exception as e:
         flash(f"Error: {str(e)}", "error")
     return redirect(url_for("admin"))
+
+
+@app.route("/admin/users")
+@login_required
+def admin_users():
+    """Admin dashboard - List all users."""
+    users = get_all_users()
+    current_user_id = session.get("user_id")
+    return render_template("admin_users.html", users=users, current_user_id=current_user_id)
+
+
+@app.route("/admin/users/toggle/<int:user_id>", methods=["POST"])
+@login_required
+def toggle_admin(user_id):
+    """Toggle admin status for a user."""
+    # Prevent self-demotion
+    if user_id == session.get("user_id"):
+        flash("Anda tidak dapat mengubah status admin diri sendiri.", "error")
+        return redirect(url_for("admin_users"))
+        
+    try:
+        target_user = get_user_by_id(user_id)
+        if not target_user:
+            flash("User tidak ditemukan", "error")
+            return redirect(url_for("admin_users"))
+            
+        new_status = not target_user.get("is_admin", False)
+        set_admin_status(user_id, new_status)
+        
+        status_msg = "dijadikan Admin" if new_status else "dihapus dari Admin"
+        flash(f"User {target_user.get('email')} berhasil {status_msg}.", "success")
+        
+    except Exception as e:
+        flash(f"Error: {str(e)}", "error")
+        
+    return redirect(url_for("admin_users"))
 
 
 # ============== RUN ==============

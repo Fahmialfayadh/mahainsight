@@ -1,1 +1,4 @@
 .venv/
+.env
+test_engine_v2.py
+__pycache__/.env

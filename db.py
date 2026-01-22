@@ -43,7 +43,7 @@ def get_post_by_slug(slug: str):
 
 def create_post(title: str, slug: str, content_md: str, source_link: str, 
                 source_name: str, data_url: str = None, thumbnail_url: str = None,
-                viz_url: str = None, viz_urls: list = None):
+                viz_url: str = None, viz_urls: list = None, petasight_link: str = None):
     """Create a new post.
     
     viz_urls should be a list of dicts: [{"url": "...", "title": "..."}, ...]
@@ -58,7 +58,8 @@ def create_post(title: str, slug: str, content_md: str, source_link: str,
         "data_url": data_url,
         "thumbnail_url": thumbnail_url,
         "viz_url": viz_url,
-        "viz_urls": viz_urls  # JSON array for multiple visualizations
+        "viz_urls": viz_urls,  # JSON array for multiple visualizations
+        "petasight_link": petasight_link
     }
     response = supabase.table("posts").insert(data).execute()
     return response.data
@@ -140,4 +141,134 @@ def get_content_type(filename: str) -> str:
         'htm': 'text/html'
     }
     return content_types.get(ext, 'application/octet-stream')
+
+
+# ============== USER OPERATIONS ==============
+
+def create_user(email: str, password_hash: str, full_name: str = None, is_admin: bool = False):
+    """Create a new user in users_insight table."""
+    supabase = get_supabase()
+    data = {
+        "email": email,
+        "password_hash": password_hash,
+        "full_name": full_name,
+        "is_admin": is_admin
+    }
+    response = supabase.table("users_insight").insert(data).execute()
+    return response.data
+
+
+def get_user_by_email(email: str):
+    """Get user by email from users_insight table."""
+    supabase = get_supabase()
+    response = supabase.table("users_insight").select("*").eq("email", email).single().execute()
+    return response.data
+
+
+def get_user_by_id(user_id: int):
+    """Get user by ID from users_insight table."""
+    supabase = get_supabase()
+    response = supabase.table("users_insight").select("*").eq("id", user_id).single().execute()
+    return response.data
+
+
+def get_all_users():
+    """Get all users ordered by ID."""
+    supabase = get_supabase()
+    response = supabase.table("users_insight").select("*").order("id").execute()
+    return response.data
+
+
+def set_admin_status(user_id: int, is_admin: bool):
+    """Update admin status for a user."""
+    supabase = get_supabase()
+    response = supabase.table("users_insight").update({"is_admin": is_admin}).eq("id", user_id).execute()
+    return response.data
+
+
+# ============== AI USAGE OPERATIONS ==============
+
+def get_user_ai_usage(user_id: int, post_id: int):
+    """
+    Get current usage count for a user on a specific post within the last 24 hours.
+    Resets count if 24 hours have passed.
+    """
+    supabase = get_supabase()
+    
+    # Check for existing record
+    try:
+        response = supabase.table("user_ai_usage").select("*").eq("user_id", user_id).eq("post_id", post_id).single().execute()
+        record = response.data
+        
+        if record:
+            from datetime import datetime, timezone, timedelta
+            
+            # Parse last_used_at (Supabase returns ISO string)
+            last_used = datetimefromisoformat(record["last_used_at"].replace('Z', '+00:00'))
+            now = datetime.now(timezone.utc)
+            
+            # If more than 24 hours, reset usage
+            if now - last_used > timedelta(hours=24):
+                supabase.table("user_ai_usage").update({
+                    "usage_count": 0,
+                    "last_used_at": now.isoformat()
+                }).eq("id", record["id"]).execute()
+                return 0
+            
+            return record["usage_count"]
+            
+        return 0
+        
+    except Exception:
+        # likely no record found
+        return 0
+
+
+def increment_user_ai_usage(user_id: int, post_id: int):
+    """
+    Increment usage count for a user on a post.
+    Creates record if not exists.
+    """
+    supabase = get_supabase()
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    
+    try:
+        # Check if exists
+        response = supabase.table("user_ai_usage").select("*").eq("user_id", user_id).eq("post_id", post_id).single().execute()
+        record = response.data
+        
+        if record:
+            # Update existing
+            new_count = record["usage_count"] + 1
+            supabase.table("user_ai_usage").update({
+                "usage_count": new_count,
+                "last_used_at": now
+            }).eq("id", record["id"]).execute()
+        else:
+            # Create new
+            supabase.table("user_ai_usage").insert({
+                "user_id": user_id,
+                "post_id": post_id,
+                "usage_count": 1,
+                "last_used_at": now
+            }).execute()
+            
+    except Exception:
+        # Handle case where record doesn't exist but select failed (should be caught above, but safety fallback)
+        supabase.table("user_ai_usage").insert({
+            "user_id": user_id,
+            "post_id": post_id,
+            "usage_count": 1,
+            "last_used_at": now
+        }).execute()
+
+def datetimefromisoformat(iso_str):
+    """Helper for older python versions if needed, though 3.10+ has generic fromisoformat"""
+    from datetime import datetime
+    try:
+        return datetime.fromisoformat(iso_str)
+    except:
+        # Fallback for simple TZ handling if fromisoformat is strict
+        return datetime.strptime(iso_str.split('.')[0], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
 
