@@ -81,6 +81,13 @@ def analyze_dataset(data_url, query):
     confidence_report = quality.generate_quality_report(filtered_df, len(df))
     anomalies = quality.check_anomalies(filtered_df, semantic_cols)
     
+    # Add anomaly context if anomalies exist
+    if anomalies:
+        confidence_report["anomaly_context"] = (
+            "Nilai ekstrem yang terdeteksi bersifat statistik (Z-score > 5) dan tidak secara otomatis "
+            "menunjukkan kesalahan data, terutama pada entitas dengan populasi kecil atau variasi tinggi."
+        )
+    
     # 5. Temporal Intelligence (Module: Temporal)
     temporal_analysis = {}
     if semantic_cols['year']:
@@ -117,32 +124,62 @@ def analyze_dataset(data_url, query):
     # 7. Analytical Insights Generation
     insights = {}
     
-    # A. Trend
+    # A. Trend Analysis (Multi-Scale)
     if semantic_cols['year'] and primary_metric:
         y_col = semantic_cols['year'][0]
         df_sorted = filtered_df.sort_values(y_col)
+        
         if len(df_sorted) > 1:
+            # 1. Long-term Trend (Preserved)
             start_val = df_sorted.iloc[0][primary_metric]
             end_val = df_sorted.iloc[-1][primary_metric]
             start_year = df_sorted.iloc[0][y_col]
             end_year = df_sorted.iloc[-1][y_col]
             
+            trend_data = {
+                "metric": primary_metric,
+                "start_year": int(start_year),
+                "end_year": int(end_year),
+            }
+            
             if not (pd.isna(start_val) or pd.isna(end_val)):
                 delta = end_val - start_val
                 growth_rate = (delta / start_val) * 100 if start_val != 0 else 0
-                direction = "UP" if delta > 0 else "DOWN" if delta < 0 else "FLAT"
                 
-                trend_insight = {
-                    "metric": primary_metric,
-                    "direction": direction,
-                    "start_year": int(start_year),
-                    "end_year": int(end_year),
+                trend_data["long_term"] = {
+                    "period": f"{int(start_year)}-{int(end_year)}", # Explicitly label full range
+                    "direction": "UP" if delta > 0 else "DOWN" if delta < 0 else "FLAT",
                     "absolute_change": float(round(delta, 2)),
                     "growth_rate_percent": float(round(growth_rate, 2))
                 }
-                unit = metadata.get("units", {}).get(primary_metric)
-                if unit: trend_insight["unit"] = unit
-                insights['trend'] = trend_insight
+            
+            # 2. Short-term Momentum (New)
+            recent_meta = temporal_analysis.get("range", {}).get("recent_period")
+            
+            if recent_meta and recent_meta.get("available_years", 0) >= 3:
+                # Filter for recent years
+                recent_start = recent_meta["start_year"]
+                df_recent = df_sorted[df_sorted[y_col] >= recent_start]
+                
+                if len(df_recent) > 1:
+                    r_start_val = df_recent.iloc[0][primary_metric]
+                    r_end_val = df_recent.iloc[-1][primary_metric]
+                    
+                    if not (pd.isna(r_start_val) or pd.isna(r_end_val)):
+                        r_delta = r_end_val - r_start_val
+                        r_growth = (r_delta / r_start_val) * 100 if r_start_val != 0 else 0
+                        
+                        trend_data["recent_momentum"] = {
+                            "period": f"{recent_meta['start_year']}-{recent_meta['end_year']}",
+                            "direction": "UP" if r_delta > 0 else "DOWN" if r_delta < 0 else "FLAT",
+                            "growth_rate_percent": float(round(r_growth, 2))
+                        }
+            
+            # Unit attachment
+            unit = metadata.get("units", {}).get(primary_metric)
+            if unit: trend_data["unit"] = unit
+            
+            insights['trend'] = trend_data
 
     # B. Ranking
     if primary_metric and len(filtered_df) > 1 and filtered_df[primary_metric].notna().sum() > 0:
@@ -186,8 +223,29 @@ def analyze_dataset(data_url, query):
                 aggregations["custom_metric"] = "mean"
                 aggregations["custom_values"] = filtered_df[numeric_cols].mean().to_dict()
             elif any(x in q_lower for x in ['sum', 'total', 'jumlah']):
-                aggregations["custom_metric"] = "sum"
-                aggregations["custom_values"] = filtered_df[numeric_cols].sum().to_dict()
+                # Strict Rule: Check if summation is allowed
+                safe_sum_cols = []
+                warnings = []
+                
+                for col in numeric_cols:
+                    col_type = metadata["semantic_types"].get(col, "unknown")
+                    allowed_aggs = schema.validate_aggregation_rules(col_type)
+                    
+                    if "sum" in allowed_aggs:
+                        safe_sum_cols.append(col)
+                    else:
+                        warnings.append(f"Agregasi SUM dibatalkan untuk '{col}' karena tipe '{col_type}'.")
+                
+                if safe_sum_cols:
+                    aggregations["custom_metric"] = "sum"
+                    aggregations["custom_values"] = filtered_df[safe_sum_cols].sum().to_dict()
+                    if warnings:
+                        aggregations["warnings"] = warnings
+                else:
+                    # Fallback to mean if no columns can be summed (safest bet)
+                    aggregations["custom_metric"] = "mean (fallback)"
+                    aggregations["custom_values"] = filtered_df[numeric_cols].mean().to_dict()
+                    aggregations["warnings"] = ["Permintaan SUM tidak valid untuk semua variabel. Menampilkan RATA-RATA sebagai gantinya."]
 
     # 9. Sample Rows
     samples = []
@@ -211,6 +269,6 @@ def analyze_dataset(data_url, query):
     }
     
     if filtered_df.empty:
-        result["warnings"].append("No data matched the specific filters.")
+        result["warnings"].append("Tidak terdeteksi data yang memenuhi kriteria filter spesifik.")
     
     return result

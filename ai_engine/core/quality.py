@@ -72,25 +72,46 @@ def generate_quality_report(df, original_dataset_len=0):
     # 1. Sample Size
     if count < 5:
         score = "low"
-        reason.append("Critical: Very small sample size (< 5 rows)")
+        reason.append("Peringatan: Ukuran sampel sangat kecil (< 5 observasi), hasil mungkin tidak representatif.")
     elif count < 30:
         score = "medium" 
-        reason.append("Warning: Small subset (< 30 rows)")
+        reason.append("Catatan: Sampel terbatas (< 30 observasi).")
         
     # 2. Missing Values
     if null_density > 0.3:
         score = "low"
-        reason.append(f"Critical: High missing value density ({null_density:.1%})")
+        reason.append(f"Kritis: Densitas nilai hilang tinggi ({null_density:.1%}), analisis mungkin bias.")
     elif null_density > 0.1:
         if score == "high": score = "medium"
-        reason.append(f"Warning: Moderate missing values ({null_density:.1%})")
+        reason.append(f"Peringatan: Defisiensi data terdeteksi ({null_density:.1%}).")
         
-    if not reason:
-        reason.append("Data quality looks good")
+    # Create Professional Summary
+    summary_parts = []
+    
+    # Null Check Status
+    if numeric_df.empty:
+        summary_parts.append("Pemeriksaan nilai kosong tidak dapat dilakukan karena tidak ditemukan kolom numerik.")
+    else:
+        summary_parts.append(f"Pemeriksaan kualitas data menunjukkan densitas nilai kosong sebesar {null_density:.1%} pada variabel numerik yang dianalisis.")
         
+    # Anomaly Status
+    # Note: Anomalies are passed in separately usually, but we can infer from reason if critical
+    
+    # Limitation/Context Stating
+    summary_parts.append("Pemeriksaan duplikasi dan konsistensi relasional tidak dilakukan secara menyeluruh pada tahap analisis cepat ini.")
+    
+    # Final Conclusion
+    if score == "high":
+        summary_parts.append("Secara keseluruhan, dataset memiliki tingkat kelengkapan data yang sangat baik, dengan validitas statistik yang memadai untuk analisis lebih lanjut.")
+    elif score == "medium":
+        summary_parts.append("Secara umum kualitas data memadai, namun interpretasi harus mempertimbangkan keterbatasan ukuran sampel atau kelengkapan variabel.")
+    else:
+        summary_parts.append("Dataset memiliki isu kualitas signifikan yang mungkin membatasi validitas kesimpulan statistik.")
+
     return {
         "score": score,
         "reason": "; ".join(reason),
         "sample_size": count,
-        "null_density": f"{null_density:.1%}"
+        "null_density": f"{null_density:.1%}",
+        "summary": " ".join(summary_parts)
     }
