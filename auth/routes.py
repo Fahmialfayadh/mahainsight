@@ -254,22 +254,41 @@ def google_callback():
         
         # Find or create user
         user = None
+        
+        # First, try to find by Google ID
         try:
             user = get_user_by_google_id(google_id)
         except:
+            pass
+        
+        # If not found by Google ID, try by email
+        if not user:
             try:
                 user = get_user_by_email(email)
                 if user:
+                    # User exists with this email, link Google account
                     update_user_oauth(user["id"], google_id, google_profile)
             except:
                 pass
         
+        # If still not found, create new user
         if not user:
-            hashed = generate_password_hash(os.urandom(32).hex())
-            user_data = create_user(email, hashed, full_name)
-            user_id = user_data[0]["id"] if isinstance(user_data, list) else user_data["id"]
-            update_user_oauth(user_id, google_id, google_profile)
-            user = get_user_by_id(user_id)
+            try:
+                hashed = generate_password_hash(os.urandom(32).hex())
+                user_data = create_user(email, hashed, full_name)
+                user_id = user_data[0]["id"] if isinstance(user_data, list) else user_data["id"]
+                update_user_oauth(user_id, google_id, google_profile)
+                user = get_user_by_id(user_id)
+            except Exception as e:
+                # If create fails due to duplicate email, try to get existing user
+                print(f"Create user failed (probably duplicate): {e}")
+                try:
+                    user = get_user_by_email(email)
+                    if user:
+                        update_user_oauth(user["id"], google_id, google_profile)
+                except Exception as e2:
+                    print(f"Failed to link existing user: {e2}")
+                    raise
         
         response = create_auth_response(user)
         session.pop("oauth_state", None)

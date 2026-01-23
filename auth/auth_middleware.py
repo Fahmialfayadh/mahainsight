@@ -136,6 +136,11 @@ def set_auth_cookies(response, access_token: str, refresh_token: str, secure: bo
         refresh_token: JWT refresh token
         secure: Whether to set Secure flag (True for production/HTTPS)
     """
+    # Use Lax for localhost (development), None for production (cross-site HTTPS)
+    import os
+    is_production = os.getenv("FLASK_ENV") == "production"
+    samesite_value = 'None' if is_production else 'Lax'
+    
     # Access token cookie (15 minutes)
     response.set_cookie(
         "access_token",
@@ -143,7 +148,7 @@ def set_auth_cookies(response, access_token: str, refresh_token: str, secure: bo
         max_age=900,  # 15 minutes
         httponly=True,
         secure=secure,
-        samesite="None",  # Changed from Lax to None for cross-site
+        samesite=samesite_value,
         path="/"
     )
     
@@ -154,7 +159,7 @@ def set_auth_cookies(response, access_token: str, refresh_token: str, secure: bo
         max_age=2592000,  # 30 days
         httponly=True,
         secure=secure,
-        samesite="None",  # Changed from Lax to None for cross-site
+        samesite=samesite_value,
         path="/"
     )
 
