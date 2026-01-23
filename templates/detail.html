@@ -258,10 +258,10 @@
                     tentang
                     data di artikel ini. Daftar gratis sekarang!</p>
                 <div class="flex gap-4 justify-center">
-                    <a href="{{ url_for('register_page') }}"
+                    <a href="{{ url_for('auth.register') }}"
                         class="px-6 py-3 bg-white text-brand-600 font-semibold rounded-xl hover:bg-brand-50 transition shadow-lg">Daftar
                         Akun</a>
-                    <a href="{{ url_for('login_page', next=request.path) }}"
+                    <a href="{{ url_for('auth.login', next=request.path) }}"
                         class="px-6 py-3 bg-brand-700/50 text-white font-semibold rounded-xl hover:bg-brand-700 transition backdrop-blur-sm border border-brand-500">Masuk</a>
                 </div>
             </div>

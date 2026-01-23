@@ -25,33 +25,64 @@ from db import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Import JWT auth system
+from auth.routes import auth_bp
+from auth.auth_middleware import jwt_required, admin_required, get_current_user
+from flask import g
+
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default-secret-key")
 
+# Session cookie configuration for OAuth (SameSite=None compatibility)
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+# Register authentication blueprint
+app.register_blueprint(auth_bp)
+
+# ============== CONTEXT PROCESSOR ==============
+
+@app.context_processor
+def inject_user():
+    """Inject current user from JWT into all templates."""
+    user = get_current_user()
+    if user:
+        # Also populate session for backward compatibility with templates
+        session['user_id'] = user['user_id']
+        session['user_name'] = user.get('email', '').split('@')[0]  # Use email prefix as name
+        session['is_admin'] = user.get('is_admin', False)
+        
+        # Try to get full name from database
+        try:
+            from db import get_user_by_id
+            user_data = get_user_by_id(user['user_id'])
+            if user_data and user_data.get('full_name'):
+                session['user_name'] = user_data['full_name']
+        except:
+            pass
+    else:
+        # Clear session if no JWT token
+        session.pop('user_id', None)
+        session.pop('user_name', None)
+        session.pop('is_admin', None)
+    
+    return dict(current_user=user)
+
 # ============== HELPERS ==============
 
+# Legacy decorators kept for backward compatibility
+# These now use JWT tokens instead of sessions
 def login_required(f):
-    """Decorator to require admin login (is_admin=True)."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get("is_admin"):
-            flash("Akses ditolak. Anda harus login sebagai admin.", "error")
-            return redirect(url_for("login_page"))
-        return f(*args, **kwargs)
-    return decorated_function
+    """Decorator to require admin login (is_admin=True) - JWT version."""
+    return admin_required(f)
 
 
 def user_required(f):
-    """Decorator to require user login."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get("user_id"):
-            flash("Silakan login user terlebih dahulu.", "warning")
-            return redirect(url_for("login_page"))
-        return f(*args, **kwargs)
-    return decorated_function
+    """Decorator to require user login - JWT version."""
+    return jwt_required(f)
 
 def slugify(text: str) -> str:
     """Convert text to URL-friendly slug."""
@@ -259,9 +290,8 @@ def viz_proxy():
 
 
 @app.route("/api/ai/summary", methods=["POST"])
-@user_required
+@jwt_required
 def ai_summary():
-    """Generate article summary using Groq AI."""
     """Generate article summary using Groq AI."""
     
     post_id = request.json.get("post_id")
@@ -310,9 +340,8 @@ def ai_summary():
 
 
 @app.route("/api/ai/chat", methods=["POST"])
-@user_required
+@jwt_required
 def ai_chat():
-    """Answer questions about the article/data using Groq AI."""
     """Answer questions about the article/data using Groq AI."""
     data = request.json
     post_id = data.get("post_id")
@@ -321,8 +350,9 @@ def ai_chat():
     if not post_id or not question:
         return jsonify({"error": "Missing parameters"}), 400
         
-    user_id = session.get("user_id")
-    is_admin = session.get("is_admin", False)
+    user = get_current_user()
+    user_id = user["user_id"] if user else None
+    is_admin = user["is_admin"] if user else False
     
     # === RATE LIMIT CHECK ===
     remaining_quota = 3 # default
@@ -421,11 +451,12 @@ def ai_chat():
 @app.route("/api/ai/usage/<int:post_id>")
 def get_ai_usage_api(post_id):
     """Get remaining usage for a user on a post."""
-    if not session.get("user_id"):
+    user = get_current_user()
+    if not user:
         return jsonify({"remaining": 0, "is_admin": False})
         
-    user_id = session.get("user_id")
-    is_admin = session.get("is_admin", False)
+    user_id = user["user_id"]
+    is_admin = user["is_admin"]
     
     if is_admin:
         return jsonify({"remaining": 999, "is_admin": True})
@@ -608,99 +639,16 @@ def get_ai_usage_api(post_id):
 
 
 # ============== AUTH ROUTES ==============
+# Auth routes moved to auth/routes.py and registered as blueprint
+# Backward compatibility routes
 
-@app.route("/login", methods=["GET", "POST"])
-def login_page():
-    # Helper to redirect logged-in users
-    if session.get("user_id"):
-        return redirect(url_for("admin") if session.get("is_admin") else url_for("index"))
-        
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-        
-        try:
-            user = get_user_by_email(email)
-            if user and check_password_hash(user["password_hash"], password):
-                session["user_id"] = user["id"]
-                session["user_name"] = user.get("full_name") or email.split("@")[0]
-                session["is_admin"] = user.get("is_admin", False)
-                
-                flash("Login berhasil!", "success")
-                
-                # Redirect based on role
-                if session["is_admin"]:
-                    return redirect(url_for("admin"))
-                else:
-                    return redirect(request.args.get("next") or url_for("index"))
-            else:
-                flash("Email atau password salah", "error")
-        except Exception as e:
-            flash("Email atau password salah", "error")
-            
-    return render_template("auth_login.html")
-
-
-@app.route("/logout")
-def logout_page():
-    session.clear()
-    flash("Anda telah logout.", "info")
-    return redirect(url_for("index"))
-
-# Backward compatibility routes (can be removed later)
 @app.route("/user-login")
 def user_login_redirect():
-    return redirect(url_for("login_page"))
+    return redirect(url_for("auth.login"))
 
 @app.route("/user-logout")
 def user_logout_redirect():
-    return redirect(url_for("logout_page"))
-
-
-
-
-# ============== USER AUTH ROUTES ==============
-
-@app.route("/register", methods=["GET", "POST"])
-def register_page():
-    if session.get("user_id"):
-        return redirect(url_for("index"))
-        
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-        full_name = request.form.get("full_name")
-        
-        if not email or not password:
-            flash("Email dan password wajib diisi", "error")
-            return render_template("auth_register.html")
-            
-        # Check if user exists
-        try:
-            existing = get_user_by_email(email)
-            if existing:
-                flash("Email sudah terdaftar", "error")
-                return render_template("auth_register.html")
-        except:
-            # User likely doesn't exist (API error handling could be better)
-            pass
-            
-        try:
-            hashed = generate_password_hash(password)
-            create_user(email, hashed, full_name)
-            flash("Registrasi berhasil! Silakan login.", "success")
-            return redirect(url_for("login_page"))
-        except Exception as e:
-            flash(f"Error: {str(e)}", "error")
-            
-    return render_template("auth_register.html")
-
-
-            
-    return render_template("auth_register.html")
-
-
-# Old routes removed/redirected above
+    return redirect(url_for("auth.logout"))
 
 # ============== ADMIN ROUTES ==============
 
