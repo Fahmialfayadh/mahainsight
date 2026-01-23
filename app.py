@@ -35,9 +35,11 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default-secret-key")
 
-# Session cookie configuration for OAuth (SameSite=None compatibility)
+# Session cookie configuration for OAuth
+# For production (HTTPS): set FLASK_ENV=production in .env
+IS_PRODUCTION = os.getenv("FLASK_ENV") == "production"
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION  # True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 # Register authentication blueprint

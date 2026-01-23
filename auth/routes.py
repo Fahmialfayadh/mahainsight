@@ -225,38 +225,26 @@ def google_callback():
     state = request.args.get("state")
     error = request.args.get("error")
     
-    print(f"[OAUTH DEBUG] Callback received - code: {code[:20] if code else None}, state: {state}")
-    
     if error:
-        print(f"[OAUTH ERROR] Google error: {error}")
         flash(f"Google login cancelled: {error}", "error")
         return redirect(url_for("auth.login"))
     
     if not code:
-        print("[OAUTH ERROR] No authorization code")
         flash("No authorization code received", "error")
         return redirect(url_for("auth.login"))
     
     stored_state = session.get("oauth_state")
-    print(f"[OAUTH DEBUG] Stored state: {stored_state}, Received state: {state}")
-    
     if not stored_state or stored_state != state:
-        print(f"[OAUTH ERROR] State mismatch! Stored: {stored_state}, Got: {state}")
         flash("Invalid state parameter", "error")
         return redirect(url_for("auth.login"))
     
     try:
-        print("[OAUTH DEBUG] Exchanging code for token...")
         token_response = exchange_code_for_token(code, state)
         access_token = token_response.get("access_token")
-        print(f"[OAUTH DEBUG] Got access token: {access_token[:20] if access_token else None}...")
         
-        print("[OAUTH DEBUG] Fetching user profile...")
         google_profile = get_user_info(access_token)
-        print(f"[OAUTH DEBUG] Profile: {google_profile.get('email')}")
         
         if not validate_google_profile(google_profile):
-            print("[OAUTH ERROR] Profile validation failed")
             flash("Invalid Google profile or email not verified", "error")
             return redirect(url_for("auth.login"))
         
@@ -264,48 +252,34 @@ def google_callback():
         email = google_profile.get("email")
         full_name = google_profile.get("name")
         
-        print(f"[OAUTH DEBUG] Looking for user with Google ID: {google_id} or email: {email}")
-        
         # Find or create user
         user = None
         try:
             user = get_user_by_google_id(google_id)
-            print(f"[OAUTH DEBUG] Found existing user by Google ID")
-        except Exception as e:
-            print(f"[OAUTH DEBUG] No user with Google ID, trying email: {e}")
+        except:
             try:
                 user = get_user_by_email(email)
                 if user:
-                    print(f"[OAUTH DEBUG] Found user by email, linking Google account")
                     update_user_oauth(user["id"], google_id, google_profile)
-            except Exception as e2:
-                print(f"[OAUTH DEBUG] No user with email either: {e2}")
+            except:
+                pass
         
         if not user:
-            print(f"[OAUTH DEBUG] Creating new user...")
             hashed = generate_password_hash(os.urandom(32).hex())
             user_data = create_user(email, hashed, full_name)
             user_id = user_data[0]["id"] if isinstance(user_data, list) else user_data["id"]
-            print(f"[OAUTH DEBUG] Created user ID: {user_id}")
-            
             update_user_oauth(user_id, google_id, google_profile)
             user = get_user_by_id(user_id)
-            print(f"[OAUTH DEBUG] User created and fetched")
         
-        print(f"[OAUTH DEBUG] Creating auth response for user {user['id']}")
         response = create_auth_response(user)
         session.pop("oauth_state", None)
         flash("Login dengan Google berhasil!", "success")
-        print("[OAUTH DEBUG] Success! Redirecting...")
         return response
         
     except OAuthError as e:
-        print(f"[OAUTH ERROR] OAuthError: {e}")
         flash(f"Google OAuth error: {str(e)}", "error")
         return redirect(url_for("auth.login"))
     except Exception as e:
-        print(f"[OAUTH ERROR] Unexpected error: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Google callback error: {e}")  # Keep minimal error logging
         flash("Terjadi kesalahan saat login dengan Google", "error")
         return redirect(url_for("auth.login"))
