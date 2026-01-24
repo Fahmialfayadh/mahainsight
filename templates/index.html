@@ -3,6 +3,9 @@
 {% block title %}MahaInsight - Eksplorasi Data{% endblock %}
 
 {% block content %}
+<!-- Background Canvas -->
+<canvas id="bg-canvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
+
 <!-- Hero Section -->
 <section class="pt-20 pb-20 md:pt-32 md:pb-24">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -14,7 +17,7 @@
                     class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
             </span>
-            Platform Artikel Data
+            Platform Artikel dan Visualisasi Data
         </div>
 
 
@@ -26,7 +29,7 @@
         </h1>
 
         <p class="text-lg md:text-xl text-slate-700 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Artikel dan visualisasi data dengan data yang terbuka, bisa diunduh, dan terverifikasi.
+            Eksplorasi artikel, data, dan visualisasi secara terpadu, terintegrasi dengan AI.
         </p>
         <p class="text-lg md:text-xl text-slate-500 mb-6 max-w-2xl mx-auto leading-relaxed">
             Beta version
@@ -132,7 +135,7 @@
                 class="flex flex-col items-center text-center p-4 md:p-6 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300">
                 <div
                     class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-brand-50 flex items-center justify-center mb-3 md:mb-4 text-brand-600">
-                    <i class="bi bi-graph-up-arrow text-xl md:text-2xl"></i>
+                    <i class="bi bi-graph-up-arrow text-xl md:text-2xl text-orange-600"></i>
                 </div>
                 <h3 class="font-display font-semibold text-base md:text-lg text-slate-900 mb-2">Visualisasi Data</h3>
                 <p class="text-slate-500 leading-relaxed text-xs md:text-sm">Penyajian data secara visual dan mudah
@@ -144,11 +147,11 @@
                 class="flex flex-col items-center text-center p-4 md:p-6 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300">
                 <div
                     class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-3 md:mb-4 text-blue-600">
-                    <i class="bi bi-database-fill-down text-xl md:text-2xl"></i>
+                    <i class="bi bi-database-fill-down text-xl md:text-2xl text-"></i>
                 </div>
                 <h3 class="font-display font-semibold text-base md:text-lg text-slate-900 mb-2">Akses Data Terbuka</h3>
-                <p class="text-slate-500 leading-relaxed text-xs md:text-sm">Download raw data untuk validasi mandiri.
-                </p>
+                <p class="text-slate-500 leading-relaxed text-xs md:text-sm">Dataset terbuka dari penyedia
+                    resmi untuk transparansi dan validasi analisis.</p>
             </div>
 
             <!-- Feature 3 -->
@@ -266,4 +269,8 @@
         {% endif %}
     </div>
 </section>
+</section>
+
+<!-- Star Background Script -->
+<script src="{{ url_for('static', filename='js/star-background.js') }}"></script>
 {% endblock %}

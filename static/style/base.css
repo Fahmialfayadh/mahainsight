@@ -42,39 +42,56 @@ h6,
     pointer-events: none;
     background: #fff;
     /* Noisy gradient overlay */
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
 .blob {
     position: absolute;
     filter: blur(80px);
-    opacity: 0.6;
+    opacity: 0.5;
     border-radius: 50%;
+    animation: floatBlob 20s infinite alternate ease-in-out;
+}
+
+@keyframes floatBlob {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate(30px, 30px) scale(1.1);
+    }
 }
 
 .blob-1 {
-    top: -10%;
-    left: -10%;
-    width: 50vw;
-    height: 50vw;
-    background: #ede9fe;
+    top: -5%;
+    left: -5%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, rgba(139, 92, 246, 0.139) 70%);
+    /* purple-400 */
+    animation-delay: 0s;
 }
 
 .blob-2 {
     bottom: -10%;
     right: -10%;
-    width: 40vw;
-    height: 40vw;
-    background: #f5f3ff;
+    width: 50vw;
+    height: 50vw;
+    background: radial-gradient(circle, rgba(96, 165, 250, 0.3) 0%, rgba(59, 131, 246, 0.139) 70%);
+    /* blue-400 */
+    animation-delay: -5s;
 }
 
 .blob-3 {
-    top: 40%;
-    left: 40%;
-    width: 30vw;
-    height: 30vw;
-    background: #f3e8ff;
-    opacity: 0.4;
+    top: 30%;
+    left: 30%;
+    width: 40vw;
+    height: 40vw;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0.139) 70%);
+    /* pink-500 */
+    animation-delay: -10s;
+    opacity: 0.6;
 }
 
 /* Typography */

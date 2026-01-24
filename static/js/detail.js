@@ -5,6 +5,7 @@ const tableContainer = document.getElementById('tableContainer');
 const loadingState = document.getElementById('loadingState');
 const errorState = document.getElementById('errorState');
 const downloadBtn = document.getElementById('downloadBtn');
+const sourceBtn = document.getElementById('sourceBtn');
 
 function previewData(url) {
     // Show modal
@@ -16,7 +17,8 @@ function previewData(url) {
     }, 10);
 
     // Set content
-    downloadBtn.href = url;
+
+    sourceBtn.link = url;
     tableContainer.innerHTML = '';
     tableContainer.classList.add('hidden');
     errorState.classList.add('hidden');
@@ -317,7 +319,7 @@ async function generateSummary() {
     loading.classList.remove('hidden');
 
     try {
-        const resp = await fetch('/api/ai/summary', {
+        const resp = await authenticatedFetch('/api/ai/summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ post_id: postId })
@@ -364,7 +366,7 @@ async function sendChat() {
     chatHistory.scrollTop = chatHistory.scrollHeight;
 
     try {
-        const resp = await fetch('/api/ai/chat', {
+        const resp = await authenticatedFetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ post_id: postId, question: question })
@@ -419,7 +421,7 @@ async function checkQuota() {
         // Since updating app.py is easy, I should have passed it in context. 
         // I will do a quick fetch to a new endpoint /api/ai/usage/<post_id>
 
-        const resp = await fetch(`/api/ai/usage/${postId}`);
+        const resp = await authenticatedFetch(`/api/ai/usage/${postId}`);
         if (resp.ok) {
             const data = await resp.json();
             const remaining = data.remaining;

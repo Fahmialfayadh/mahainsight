@@ -29,7 +29,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from auth.routes import auth_bp
 from auth.auth_middleware import jwt_required, admin_required, get_current_user
 from flask import g
-
+from openai import OpenAI
 load_dotenv()
 
 app = Flask(__name__)
@@ -306,6 +306,57 @@ def viz_proxy():
         return f"Error fetching visualization: {str(e)}", 500
 
 
+#tes groq llama vs openai
+'''
+@app.route("/api/ai/summary2", methods=["POST"])
+@jwt_required
+def ai_summary2():
+    """Generate article summary using Groq AI."""
+    
+    post_id = request.json.get("post_id")
+    if not post_id:
+        return jsonify({"error": "Post ID required"}), 400
+        
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return jsonify({"error": "AI service not configured (Missing API Key)"}), 503
+        
+    posts = get_all_posts()
+    post = next((p for p in posts if p["id"] == int(post_id)), None)
+    if not post:
+        return jsonify({"error": "Post not found"}), 404
+
+    try:
+        client = OpenAI(api_key=api_key)
+        
+        # Get data context if available
+        data_context = get_csv_context(post.get("data_url"))
+        
+        content = strip_markdown(post.get("content_md", ""))
+        
+        prompt = f"""
+        Your name is Vercax. You are a helpful data analyst assistant. 
+        Please provide a concise summary of the following article.
+        
+        Article Content:
+        {content[:4000]}  # Limit content length
+        
+        {f'Dataset Context based on attached CSV:{data_context}' if data_context else ''}
+        
+        Focus on the key insights and findings. Use Markdown formatting.
+        """
+        
+        completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="gpt-4.1",
+        )
+        
+        return jsonify({
+            "summary": completion.choices[0].message.content
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+'''
 @app.route("/api/ai/summary", methods=["POST"])
 @jwt_required
 def ai_summary():
@@ -354,8 +405,6 @@ def ai_summary():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 @app.route("/api/ai/chat", methods=["POST"])
 @jwt_required
 def ai_chat():
