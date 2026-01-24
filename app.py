@@ -43,6 +43,10 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None' if IS_PRODUCTION else 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
+# Session lifetime: 30 days (matches refresh token expiry)
+from datetime import timedelta
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+
 # Register authentication blueprint
 app.register_blueprint(auth_bp)
 

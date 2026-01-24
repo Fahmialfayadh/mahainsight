@@ -228,6 +228,11 @@
     <!-- Mobile Menu & Scroll Script -->
     <script src="{{ url_for('static', filename='js/base.js') }}"></script>
     <script src="{{ url_for('static', filename='js/font-manager.js') }}"></script>
+
+    <!-- JWT Token Auto-Refresh (only for logged in users) -->
+    {% if session.get('user_id') %}
+    <script src="{{ url_for('static', filename='js/auth_token.js') }}"></script>
+    {% endif %}
 </body>
 
 </html>

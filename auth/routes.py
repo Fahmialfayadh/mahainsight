@@ -67,6 +67,12 @@ def create_auth_response(user: dict, next_url: str = None) -> any:
     # Update last login
     update_last_login(user["id"])
     
+    # Sync Flask session with JWT (for navbar display)
+    session["user_id"] = user["id"]
+    session["user_name"] = user.get("full_name", user["email"].split("@")[0])
+    session["is_admin"] = user.get("is_admin", False)
+    session.permanent = True  # Use permanent session (30 days by default)
+    
     # Determine redirect
     if user.get("is_admin"):
         redirect_url = url_for("admin")
@@ -194,16 +200,85 @@ def refresh():
         revoke_refresh_token(token_hash)
         store_refresh_token_in_db(user["id"], new_token_hash)
         
+        # Sync Flask session with JWT (important for navbar display)
+        session["user_id"] = user["id"]
+        session["user_name"] = user.get("full_name", user["email"].split("@")[0])
+        session["is_admin"] = user.get("is_admin", False)
+        session.permanent = True  # Use permanent session for 30 days
+        
         response = make_response(jsonify({"success": True, "message": "Token refreshed"}))
         set_auth_cookies(response, new_access_token, new_refresh_token, secure=IS_PRODUCTION)
         
         return response
         
     except TokenError as e:
+        # Clear potentially stale session on token error
+        session.clear()
         return jsonify({"error": str(e), "code": "INVALID_REFRESH_TOKEN"}), 401
     except Exception as e:
         print(f"Token refresh error: {e}")
         return jsonify({"error": "Failed to refresh token", "code": "REFRESH_ERROR"}), 500
+
+
+@auth_bp.route("/api/auth/status", methods=["GET"])
+def auth_status():
+    """Check current authentication status. Used by frontend to verify token validity."""
+    from auth.auth_middleware import get_token_from_cookie, get_refresh_token_from_cookie
+    from auth.jwt_utils import verify_access_token, TokenError
+    
+    access_token = get_token_from_cookie()
+    
+    if not access_token:
+        # No access token, check if we have refresh token
+        refresh_tok = get_refresh_token_from_cookie()
+        if refresh_tok:
+            # Has refresh token but no access token - needs refresh
+            return jsonify({
+                "authenticated": False,
+                "reason": "access_token_missing",
+                "can_refresh": True
+            }), 401
+        return jsonify({
+            "authenticated": False,
+            "reason": "no_tokens"
+        }), 401
+    
+    try:
+        payload = verify_access_token(access_token)
+        user_id = payload.get("user_id")
+        
+        # Ensure session is synced with JWT
+        if not session.get("user_id"):
+            user = get_user_by_id(user_id)
+            if user:
+                session["user_id"] = user["id"]
+                session["user_name"] = user.get("full_name", user["email"].split("@")[0])
+                session["is_admin"] = user.get("is_admin", False)
+                session.permanent = True
+        
+        return jsonify({
+            "authenticated": True,
+            "user_id": user_id,
+            "email": payload.get("email"),
+            "is_admin": payload.get("is_admin", False)
+        })
+        
+    except TokenError as e:
+        # Access token expired/invalid, check refresh token
+        refresh_tok = get_refresh_token_from_cookie()
+        if refresh_tok:
+            return jsonify({
+                "authenticated": False,
+                "reason": "access_token_expired",
+                "can_refresh": True
+            }), 401
+        
+        # Clear stale session
+        session.clear()
+        return jsonify({
+            "authenticated": False,
+            "reason": "token_invalid"
+        }), 401
 
 
 @auth_bp.route("/api/auth/google/login")

@@ -6,10 +6,12 @@
 
 // Configuration
 const TOKEN_REFRESH_INTERVAL = 14 * 60 * 1000; // 14 minutes (refresh 1 min before 15 min expiry)
-const RETRY_DELAY = 2000; // 2 seconds delay before retry after refresh
+const TOKEN_EXPIRY_BUFFER = 60 * 1000; // 1 minute buffer before expiry
+const RETRY_DELAY = 500; // 500ms delay before retry after refresh
 
 let refreshTimeout = null;
 let isRefreshing = false;
+let refreshPromise = null;
 
 /**
  * Decode JWT token to extract payload (client-side, for expiry check only)
@@ -30,10 +32,9 @@ function decodeJWT(token) {
 }
 
 /**
- * Get token expiry time
+ * Get token expiry time from payload
  */
-function getTokenExpiry(token) {
-    const payload = decodeJWT(token);
+function getTokenExpiry(payload) {
     if (payload && payload.exp) {
         return payload.exp * 1000; // Convert to milliseconds
     }
@@ -41,61 +42,67 @@ function getTokenExpiry(token) {
 }
 
 /**
- * Check if token is about to expire (within 1 minute)
+ * Check if token is expired or about to expire
  */
-function isTokenExpiring(token) {
-    const expiry = getTokenExpiry(token);
+function isTokenExpiredOrExpiring(expiry) {
     if (!expiry) return true;
-
     const now = Date.now();
-    const timeUntilExpiry = expiry - now;
-
-    // Refresh if less than 1 minute remaining
-    return timeUntilExpiry < 60000;
+    return (expiry - now) < TOKEN_EXPIRY_BUFFER;
 }
 
 /**
- * Refresh access token
+ * Refresh access token - returns a promise to handle concurrent refresh requests
  */
 async function refreshToken() {
-    if (isRefreshing) {
-        console.log('Token refresh already in progress');
-        return false;
+    // If already refreshing, return the existing promise
+    if (isRefreshing && refreshPromise) {
+        console.log('Token refresh already in progress, waiting...');
+        return refreshPromise;
     }
 
     isRefreshing = true;
 
-    try {
-        const response = await fetch('/api/auth/refresh', {
-            method: 'POST',
-            credentials: 'include', // Important: include cookies
-            headers: {
-                'Content-Type': 'application/json'
+    refreshPromise = (async () => {
+        try {
+            console.log('Refreshing access token...');
+            const response = await fetch('/api/auth/refresh', {
+                method: 'POST',
+                credentials: 'include', // Important: include cookies
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                console.log('Token refreshed successfully');
+                scheduleTokenRefresh(); // Schedule next refresh
+                return true;
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Token refresh failed:', response.status, errorData);
+
+                // If refresh fails with 401, session is truly expired
+                if (response.status === 401) {
+                    console.log('Refresh token invalid or expired, redirecting to login');
+                    // Don't redirect if we're on auth pages
+                    if (!window.location.pathname.startsWith('/login') &&
+                        !window.location.pathname.startsWith('/register')) {
+                        window.location.href = '/login?expired=1';
+                    }
+                }
+
+                return false;
             }
-        });
-
-        if (response.ok) {
-            console.log('Token refreshed successfully');
-            scheduleTokenRefresh(); // Schedule next refresh
-            isRefreshing = false;
-            return true;
-        } else {
-            console.error('Token refresh failed:', response.status);
-
-            // If refresh fails with 401, redirect to login
-            if (response.status === 401) {
-                console.log('Refresh token invalid, redirecting to login');
-                window.location.href = '/login';
-            }
-
-            isRefreshing = false;
+        } catch (error) {
+            console.error('Token refresh error:', error);
             return false;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
         }
-    } catch (error) {
-        console.error('Token refresh error:', error);
-        isRefreshing = false;
-        return false;
-    }
+    })();
+
+    return refreshPromise;
 }
 
 /**
@@ -109,11 +116,46 @@ function scheduleTokenRefresh() {
 
     // Schedule refresh after TOKEN_REFRESH_INTERVAL
     refreshTimeout = setTimeout(() => {
-        console.log('Auto-refreshing token...');
+        console.log('Auto-refreshing token (scheduled)...');
         refreshToken();
     }, TOKEN_REFRESH_INTERVAL);
 
-    console.log(`Token refresh scheduled in ${TOKEN_REFRESH_INTERVAL / 1000 / 60} minutes`);
+    console.log(`Next token refresh scheduled in ${TOKEN_REFRESH_INTERVAL / 1000 / 60} minutes`);
+}
+
+/**
+ * Check authentication status and refresh if needed
+ * Called on page load to ensure we have a valid access token
+ */
+async function checkAndRefreshToken() {
+    try {
+        // Make a lightweight check to our auth status endpoint
+        const response = await fetch('/api/auth/status', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.authenticated) {
+                console.log('User authenticated, access token valid');
+                scheduleTokenRefresh();
+                return true;
+            }
+        }
+
+        // Access token invalid/expired, try to refresh
+        if (response.status === 401) {
+            console.log('Access token expired, attempting refresh...');
+            return await refreshToken();
+        }
+
+        return false;
+    } catch (error) {
+        console.error('Auth check error:', error);
+        // On error, try to refresh token anyway
+        return await refreshToken();
+    }
 }
 
 /**
@@ -133,14 +175,12 @@ async function authenticatedFetch(url, options = {}) {
             const refreshed = await refreshToken();
 
             if (refreshed) {
-                // Retry original request
+                // Retry original request after short delay
                 console.log('Retrying original request...');
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
                 response = await fetch(url, options);
             } else {
-                // Refresh failed, redirect to login
-                console.log('Token refresh failed, redirecting to login');
-                window.location.href = '/login';
+                // Refresh failed, will be redirected by refreshToken
                 throw new Error('Authentication failed');
             }
         }
@@ -156,10 +196,16 @@ async function authenticatedFetch(url, options = {}) {
  * Initialize auto-refresh on page load
  */
 function initTokenRefresh() {
-    // Start the auto-refresh cycle
-    scheduleTokenRefresh();
+    console.log('JWT auto-refresh initializing...');
 
-    console.log('JWT auto-refresh initialized');
+    // Check and refresh token immediately on page load
+    checkAndRefreshToken().then(success => {
+        if (success) {
+            console.log('JWT auto-refresh active');
+        } else {
+            console.log('Initial token refresh may have failed, will retry on next API call');
+        }
+    });
 }
 
 // Auto-initialize when DOM is ready
@@ -172,3 +218,5 @@ if (document.readyState === 'loading') {
 // Export for use in other modules
 window.authenticatedFetch = authenticatedFetch;
 window.refreshToken = refreshToken;
+window.checkAndRefreshToken = checkAndRefreshToken;
+
