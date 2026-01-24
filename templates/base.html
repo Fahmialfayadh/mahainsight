@@ -89,6 +89,8 @@
                 <div class="hidden md:flex items-center gap-8">
                     <a href="{{ url_for('index') }}"
                         class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">Eksplorasi</a>
+                    <a href="{{ url_for('datasets') }}"
+                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">Datasets</a>
                     <a href="https://mahalabs.space"
                         class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">mahalabs</a>
 
@@ -100,14 +102,28 @@
 
                 <!-- Auth Buttons for User -->
                 {% if session.get('user_id') %}
-                <div class="hidden md:flex items-center gap-4 border-l border-slate-200 pl-4 ml-2">
-                    <span class="text-sm font-medium text-slate-600">
+                <div class="hidden md:flex items-center gap-4 border-l border-slate-200 pl-4 ml-2 relative group">
+                    <button
+                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition flex items-center gap-1">
                         Halo, {{ session.get('user_name', 'User') }}
-                    </span>
-                    <a href="{{ url_for('auth.logout') }}"
-                        class="text-sm font-medium text-slate-500 hover:text-brand-600 transition">
-                        Keluar
-                    </a>
+                        <i class="bi bi-chevron-down text-xs"></i>
+                    </button>
+                    <!-- Dropdown -->
+                    <div
+                        class="absolute right-0 top-full pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60]">
+                        <div
+                            class="bg-white rounded-xl shadow-xl border border-slate-100 p-2 transform origin-top-right">
+                            <a href="{{ url_for('auth.profile') }}"
+                                class="block px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-brand-600 transition">
+                                <i class="bi bi-person-gear mr-2"></i> Pengaturan Akun
+                            </a>
+                            <div class="h-px bg-slate-50 my-1"></div>
+                            <a href="{{ url_for('auth.logout') }}"
+                                class="block px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition">
+                                <i class="bi bi-box-arrow-right mr-2"></i> Keluar
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 {% else %}
                 <div class="hidden md:flex items-center gap-3 border-l border-slate-200 pl-4 ml-2">
@@ -136,6 +152,8 @@
             <div class="flex flex-col p-6 gap-4">
                 <a href="{{ url_for('index') }}"
                     class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Eksplorasi</a>
+                <a href="{{ url_for('datasets') }}"
+                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Datasets</a>
                 <a href="https://mahalabs.space"
                     class="mobile-link text-lg font-display font-medium text-slate-700 hover:text-brand-60">Mahalabs</a>
 

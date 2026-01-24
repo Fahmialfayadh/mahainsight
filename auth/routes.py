@@ -302,3 +302,55 @@ def google_callback():
         print(f"Google callback error: {e}")  # Keep minimal error logging
         flash("Terjadi kesalahan saat login dengan Google", "error")
         return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/profile", methods=["GET", "POST"])
+def profile():
+    """User profile management."""
+    if not session.get("user_id"):
+        return redirect(url_for("auth.login", next=url_for("auth.profile")))
+
+    from db import get_user_by_id, update_user_profile
+    user_id = session.get("user_id")
+
+    if request.method == "POST":
+        full_name = request.form.get("full_name")
+        email = request.form.get("email")
+
+        if not full_name or not email:
+            flash("Nama lengkap dan email wajib diisi", "error")
+        else:
+            try:
+                # Update DB
+                update_user_profile(user_id, full_name, email)
+                
+                # Update Session
+                session["user_name"] = full_name
+                
+                # Fetch fresh user data to regenerate tokens
+                user = get_user_by_id(user_id)
+                
+                # Regenerate tokens to reflect new email in claims if needed (though usually ID is enough)
+                # But mostly to ensure consistency.
+                access_token, refresh_token, token_hash = create_jwt_tokens_for_user(user)
+                store_refresh_token_in_db(user["id"], token_hash)
+                
+                flash("Profil berhasil diperbarui", "success")
+                
+                # Response with updated cookies
+                response = make_response(redirect(url_for("auth.profile")))
+                set_auth_cookies(response, access_token, refresh_token, secure=IS_PRODUCTION)
+                return response
+                
+            except Exception as e:
+                print(f"Profile update error: {e}")
+                # Check for unique constraint violation on email
+                if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
+                    flash("Email sudah digunakan oleh pengguna lain", "error")
+                else:
+                    flash("Gagal memperbarui profil", "error")
+
+    # GET: Render form with current data
+    user = get_user_by_id(user_id)
+    return render_template("auth_profile.html", user=user)

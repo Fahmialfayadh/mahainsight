@@ -236,6 +236,16 @@ def index():
     return render_template("index.html", posts=posts)
 
 
+@app.route("/datasets")
+def datasets():
+    """List available datasets from articles."""
+    all_posts = get_all_posts()
+    # Filter posts that have a data_url
+    dataset_posts = [p for p in all_posts if p.get("data_url")]
+    
+    return render_template("datasets.html", posts=dataset_posts)
+
+
 @app.route("/post/<slug>")
 def detail(slug):
     """Article detail page."""

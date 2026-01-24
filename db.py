@@ -175,7 +175,16 @@ def get_user_by_id(user_id: int):
 def get_all_users():
     """Get all users ordered by ID."""
     supabase = get_supabase()
-    response = supabase.table("users_insight").select("*").order("id").execute()
+def update_user_profile(user_id: int, full_name: str, email: str):
+    """
+    Update user's full name and email.
+    """
+    supabase = get_supabase()
+    data = {
+        "full_name": full_name,
+        "email": email
+    }
+    response = supabase.table("users_insight").update(data).eq("id", user_id).execute()
     return response.data
 
 

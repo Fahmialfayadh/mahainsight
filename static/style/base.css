@@ -1,10 +1,23 @@
 :root {
     --font-body: 'Inter', sans-serif;
     --font-display: 'Outfit', sans-serif;
+    --article-font-size: 1.125rem;
+    /* default desktop size (18px) */
+}
+
+@media (max-width: 640px) {
+    :root {
+        --article-font-size: 0.95rem;
+        /* default mobile size (matches M) */
+    }
 }
 
 body {
     font-family: var(--font-body);
+    background-image: radial-gradient(circle at 50% 40%,
+            rgba(124, 58, 237, 0.12),
+            transparent 60%);
+
 }
 
 h1,
@@ -28,6 +41,8 @@ h6,
     overflow: hidden;
     pointer-events: none;
     background: #fff;
+    /* Noisy gradient overlay */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
 .blob {
@@ -85,7 +100,7 @@ h6,
 
 /* Extended Prose Styling for Markdown */
 .prose {
-    font-size: 1.125rem;
+    font-size: var(--article-font-size);
     line-height: 1.75;
     color: #334155;
 }

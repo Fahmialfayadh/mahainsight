@@ -164,7 +164,7 @@
                         <!-- Font Switcher -->
                         <div class="mt-1 border-t border-slate-100 pt-1">
                             <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                Font
+                                Tampilan
                             </div>
                             <div id="font-options-container">
                                 <!-- injected by JS -->
@@ -187,8 +187,9 @@
         </div>
 
         <!-- AI Assistant Section -->
-        {% if session.get('user_id') %}
         <div id="ai-chat">
+            {% if session.get('user_id') %}
+
             <div
                 class="mt-8 bg-white rounded-2xl shadow-lg shadow-slate-200/50 ring-1 ring-slate-100 p-6 sm:p-10 border-t-4 border-brand-500">
                 <div class="flex items-center justify-between mb-6">
@@ -246,6 +247,7 @@
                     </div>
                 </div>
             </div>
+
             {% else %}
             <div
                 class="mt-8 bg-gradient-to-br from-brand-600 to-indigo-600 rounded-2xl shadow-lg p-8 text-center text-white">
@@ -267,38 +269,40 @@
             </div>
         </div>
         {% endif %}
+    </div>
 
-        <!-- Source Footer -->
-        {% if post.source_name or post.source_link %}
-        <div class="mt-16 pt-8 border-t border-slate-100">
-            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                <h3 class="font-display font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                    <i class="bi bi-info-circle text-brand-500"></i> Referensi Data
-                </h3>
-                <p class="text-sm text-slate-500 mb-0">
-                    Analisis ini didasarkan pada data dari
-                    {% if post.source_name %}
-                    <span class="font-medium text-slate-700">{{ post.source_name }}</span>.
-                    {% endif %}
 
-                    {% if post.source_link %}
-                    <a href="{{ post.source_link }}" target="_blank"
-                        class="block mt-2 text-brand-600 hover:text-brand-700 truncate">
-                        {{ post.source_link }}
-                    </a>
-                    {% endif %}
-                </p>
-            </div>
+    <!-- Source Footer -->
+    {% if post.source_name or post.source_link %}
+    <div class="mt-16 pt-8 border-t border-slate-100">
+        <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+            <h3 class="font-display font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                <i class="bi bi-info-circle text-brand-500"></i> Referensi Data
+            </h3>
+            <p class="text-sm text-slate-500 mb-0">
+                Analisis ini didasarkan pada data dari
+                {% if post.source_name %}
+                <span class="font-medium text-slate-700">{{ post.source_name }}</span>.
+                {% endif %}
+
+                {% if post.source_link %}
+                <a href="{{ post.source_link }}" target="_blank"
+                    class="block mt-2 text-brand-600 hover:text-brand-700 truncate">
+                    {{ post.source_link }}
+                </a>
+                {% endif %}
+            </p>
         </div>
-        {% endif %}
+    </div>
+    {% endif %}
 
-        <!-- Back Link -->
-        <div class="mt-12 text-center">
-            <a href="{{ url_for('index') }}"
-                class="inline-flex items-center gap-2 text-slate-500 hover:text-brand-600 transition font-medium">
-                <i class="bi bi-arrow-left"></i> Kembali ke Eksplorasi
-            </a>
-        </div>
+    <!-- Back Link -->
+    <div class="mt-12 text-center">
+        <a href="{{ url_for('index') }}"
+            class="inline-flex items-center gap-2 text-slate-500 hover:text-brand-600 transition font-medium">
+            <i class="bi bi-arrow-left"></i> Kembali ke Eksplorasi
+        </a>
+    </div>
 
     </div>
 </article>
