@@ -3,6 +3,16 @@
 {% block title %}{{ post.title }} - MahaInsight{% endblock %}
 {% block description %}{{ post.preview }}{% endblock %}
 
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ post.title }} - MahaInsight{% endblock %}
+{% block og_description %}{{ post.preview }}{% endblock %}
+{% block og_image %}{% if post.thumbnail_url %}{{ post.thumbnail_url }}{% else %}{{ url_for('static', filename='assets/logo3.png', _external=True) }}{% endif %}{% endblock %}
+
+{% block twitter_card %}summary_large_image{% endblock %}
+{% block twitter_title %}{{ post.title }} - MahaInsight{% endblock %}
+{% block twitter_description %}{{ post.preview }}{% endblock %}
+{% block twitter_image %}{% if post.thumbnail_url %}{{ post.thumbnail_url }}{% else %}{{ url_for('static', filename='assets/logo3.png', _external=True) }}{% endif %}{% endblock %}
+
 {% block content %}
 <article class="pt-28 md:pt-32 pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -231,7 +241,7 @@
                             </div>
                             <div
                                 class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 max-w-[85%]">
-                                Halo! Saya Vercax, AI dari MahaLabs. Ada yang ingin ditanyakan tentang data di artikel
+                                Halo! Saya Vercax, AI dari Asymptra Labs. Ada yang ingin ditanyakan tentang data di artikel
                                 ini?
                             </div>
                         </div>

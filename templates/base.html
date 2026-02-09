@@ -4,10 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}MahaInsight{% endblock %}</title>
+    <title>{% block title %}MahaInsight - Asymptra Labs{% endblock %}</title>
     <meta name="description"
-        content="{% block description %}Eksplorasi cerita di balik data. Platform publikasi analisis mendalam dengan transparansi data penuh.{% endblock %}">
+        content="{% block description %}Eksplorasi cerita di balik data. Platform publikasi analisis mendalam oleh Asymptra Labs dengan transparansi data penuh.{% endblock %}">
+    <meta name="author" content="Asymptra Labs">
+
+    <!-- Favicon & Icons -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logo3.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/logo3.png') }}">
+
+    <!-- Open Graph / SEO -->
+    <meta property="og:site_name" content="MahaInsight - Asymptra Labs">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}MahaInsight - Asymptra Labs{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Eksplorasi cerita di balik data. Platform publikasi analisis mendalam oleh Asymptra Labs dengan transparansi data penuh.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='assets/logo3.png', _external=True) }}{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="{% block twitter_card %}summary{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}MahaInsight - Asymptra Labs{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Eksplorasi cerita di balik data. Platform publikasi analisis mendalam oleh Asymptra Labs dengan transparansi data penuh.{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ url_for('static', filename='assets/logo3.png', _external=True) }}{% endblock %}">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -218,7 +236,7 @@
                     <span class="text-sm text-slate-500">Curated Data Stories</span>
                 </div>
                 <p class="text-sm text-slate-400">
-                    &copy; 2025 Mahalabs
+                    &copy; 2025 Asymptra Labs
                 </p>
             </div>
         </div>
