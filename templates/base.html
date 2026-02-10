@@ -1,5 +1,10 @@
 <!doctype html>
 <html lang="id" class="scroll-smooth">
+<script>
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    }
+</script>
 
 <head>
     <meta charset="UTF-8" />
@@ -19,7 +24,7 @@
     <meta property="og:site_name" content="MahaInsight by Asymptra" />
     <meta property="og:title" content="MahaInsight by Asymptra | Eksplorasi Cerita di Balik Data" />
     <meta property="og:description" content="Platform publikasi analisis mendalam dengan transparansi data penuh — oleh Asymptra Labs." />
-    <meta property="og:image" content="https://mahainsight.asymptra.com/static/assets/logo3.png" />
+    <meta property="og:image" content="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
     <meta property="og:url" content="https://mahainsight.asymptra.com/" />
 
     <!-- Twitter Card -->
@@ -29,12 +34,16 @@
     <meta name="twitter:image" content="https://mahainsight.asymptra.com/static/assets/logo3.png" />
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logo3.png') }}" />
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/logo3.png') }}" />
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <link rel="mask-icon" href="{{ url_for('static', filename='assets/pavicon.ico') }}" color="#7c3aed" />
+    <link rel="shortcut icon" href="{{ url_for('static', filename='png') }}" />
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -45,15 +54,26 @@
                             300: "#c4b5fd",
                             400: "#a78bfa",
                             500: "#8b5cf6",
-                            600: "#7c3aed", // Vibrant Purple (Primary)
+                            600: "#7c3aed",
                             700: "#6d28d9",
                             800: "#5b21b6",
                             900: "#4c1d95",
                         },
-                        dark: {
-                            900: "#0f172a",
-                            800: "#1e293b",
-                            700: "#334155",
+                        dm: {
+                            950: "#141210",
+                            900: "#1c1816",
+                            800: "#262220",
+                            700: "#302b28",
+                            600: "#3e3833",
+                            500: "#5a5047",
+                            400: "#887b6e",
+                            300: "#b5a999",
+                            200: "#d4c8b8",
+                            100: "#e8e0d4",
+                            50:  "#f5efe5",
+                        },
+                        warm: {
+                            50: "#fffdf5",
                         },
                     },
                     fontFamily: {
@@ -86,7 +106,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 
-<body class="text-slate-800 antialiased selection:bg-brand-200 selection:text-brand-900 min-h-screen flex flex-col">
+<body class="text-slate-800 dark:text-dm-100 antialiased selection:bg-brand-200 selection:text-brand-900 dark:selection:bg-brand-900 dark:selection:text-brand-200 min-h-screen flex flex-col transition-colors duration-200">
     <!-- Background Decoration -->
     <div class="blob-bg">
         <div class="blob blob-1"></div>
@@ -96,7 +116,7 @@
 
     <!-- Navigation -->
     <nav id="navbar"
-        class="fixed w-full top-0 z-50 transition-all duration-300 transform translate-y-0 backdrop-blur-md bg-white/70 border-b border-white/50 supports-[backdrop-filter]:bg-white/60">
+        class="fixed w-full top-0 z-50 transition-all duration-300 transform translate-y-0 backdrop-blur-md bg-white/70 dark:bg-dm-900/80 border-b border-white/50 dark:border-dm-600/50 supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-dm-900/70">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <!-- Logo -->
@@ -104,34 +124,36 @@
                     <img src="{{ url_for('static', filename='assets/logo3_transparent.png') }}" alt="Logo"
                         class="w-10 h-10 object-contain" />
                     <span
-                        class="font-display font-bold text-xl tracking-tight text-slate-900 group-hover:text-brand-600 transition-colors">MahaInsight</span>
+                        class="font-display font-bold text-xl tracking-tight text-slate-900 dark:text-dm-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">MahaInsight</span>
                 </a>
 
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center gap-8">
                     <a href="{{ url_for('index') }}"
-                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">Eksplorasi</a>
+                        class="text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 dark:after:bg-brand-400 after:transition-all hover:after:w-full">Eksplorasi</a>
                     <a href="{{ url_for('datasets') }}"
-                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">Datasets</a>
-                    <a href="#" onclick="
-                                event.preventDefault();
-                                openLabsModal();
-                            "
-                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 after:transition-all hover:after:w-full">Asymptra
+                        class="text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 dark:after:bg-brand-400 after:transition-all hover:after:w-full">Datasets</a>
+                    <a href="#" onclick="event.preventDefault(); openLabsModal();"
+                        class="text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-brand-600 dark:after:bg-brand-400 after:transition-all hover:after:w-full">Asymptra
                         Labs</a>
-
 
                     {% if session.get('is_admin') %}
                     <a href="{{ url_for('admin') }}"
-                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Admin</a>
+                        class="text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Admin</a>
                     {% endif %}
+
+                    <!-- Theme Toggle -->
+                    <button onclick="toggleTheme()" class="theme-toggle" aria-label="Toggle theme">
+                        <i class="bi bi-sun-fill icon-sun"></i>
+                        <i class="bi bi-moon-fill icon-moon"></i>
+                    </button>
                 </div>
 
                 <!-- Auth Buttons for User -->
                 {% if session.get('user_id') %}
-                <div class="hidden md:flex items-center gap-4 border-l border-slate-200 pl-4 ml-2 relative group">
+                <div class="hidden md:flex items-center gap-4 border-l border-slate-200 dark:border-dm-600 pl-4 ml-2 relative group">
                     <button
-                        class="text-sm font-medium text-slate-600 hover:text-brand-600 transition flex items-center gap-1">
+                        class="text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition flex items-center gap-1">
                         Halo, {{ session.get('user_name', 'User') }}
                         <i class="bi bi-chevron-down text-xs"></i>
                     </button>
@@ -139,15 +161,15 @@
                     <div
                         class="absolute right-0 top-full pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60]">
                         <div
-                            class="bg-white rounded-xl shadow-xl border border-slate-100 p-2 transform origin-top-right">
+                            class="bg-white dark:bg-dm-800 rounded-xl shadow-xl border border-slate-100 dark:border-dm-600 p-2 transform origin-top-right">
                             <a href="{{ url_for('auth.profile') }}"
-                                class="block px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-brand-600 transition">
+                                class="block px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 hover:text-brand-600 dark:hover:text-brand-400 transition">
                                 <i class="bi bi-person-gear mr-2"></i>
                                 Pengaturan Akun
                             </a>
-                            <div class="h-px bg-slate-50 my-1"></div>
+                            <div class="h-px bg-slate-50 dark:bg-dm-600 my-1"></div>
                             <a href="{{ url_for('auth.logout') }}"
-                                class="block px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition">
+                                class="block px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
                                 <i class="bi bi-box-arrow-right mr-2"></i>
                                 Keluar
                             </a>
@@ -155,9 +177,9 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="hidden md:flex items-center gap-3 border-l border-slate-200 pl-4 ml-2">
+                <div class="hidden md:flex items-center gap-3 border-l border-slate-200 dark:border-dm-600 pl-4 ml-2">
                     <a href="{{ url_for('auth.login') }}"
-                        class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-brand-600 transition">
+                        class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition">
                         Masuk
                     </a>
                     <a href="{{ url_for('auth.register') }}"
@@ -168,38 +190,40 @@
                 {% endif %}
 
                 <!-- Mobile Menu Button -->
-                <button id="mobile-menu-btn"
-                    class="md:hidden p-2 text-slate-600 hover:text-brand-600 transition-colors z-50 relative focus:outline-none">
-                    <i class="bi bi-list text-3xl" id="menu-icon"></i>
-                </button>
+                <div class="md:hidden flex items-center gap-2">
+                    <button onclick="toggleTheme()" class="theme-toggle" aria-label="Toggle theme">
+                        <i class="bi bi-sun-fill icon-sun"></i>
+                        <i class="bi bi-moon-fill icon-moon"></i>
+                    </button>
+                    <button id="mobile-menu-btn"
+                        class="p-2 text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors z-50 relative focus:outline-none">
+                        <i class="bi bi-list text-3xl" id="menu-icon"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu"
-            class="hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-slate-100 shadow-xl transition-all duration-300 origin-top">
+            class="hidden absolute top-20 left-0 w-full bg-white/95 dark:bg-dm-900/95 backdrop-blur-xl border-b border-slate-100 dark:border-dm-600 shadow-xl transition-all duration-300 origin-top">
             <div class="flex flex-col p-6 gap-4">
                 <a href="{{ url_for('index') }}"
-                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Eksplorasi</a>
+                    class="mobile-link text-lg font-display font-bold text-slate-700 dark:text-dm-200 hover:text-brand-600 dark:hover:text-brand-400 py-2 border-b border-slate-50 dark:border-dm-700">Eksplorasi</a>
                 <a href="{{ url_for('datasets') }}"
-                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Datasets</a>
-                <a href="#" onclick="
-                            event.preventDefault();
-                            openLabsModal();
-                        "
-                    class="mobile-link text-lg font-display font-medium text-slate-700 hover:text-brand-60">Asymptra
+                    class="mobile-link text-lg font-display font-bold text-slate-700 dark:text-dm-200 hover:text-brand-600 dark:hover:text-brand-400 py-2 border-b border-slate-50 dark:border-dm-700">Datasets</a>
+                <a href="#" onclick="event.preventDefault(); openLabsModal();"
+                    class="mobile-link text-lg font-display font-medium text-slate-700 dark:text-dm-200 hover:text-brand-600 dark:hover:text-brand-400">Asymptra
                     Labs</a>
-
 
                 {% if session.get('is_admin') %}
                 <a href="{{ url_for('admin') }}"
-                    class="mobile-link text-lg font-display font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-slate-50">Admin</a>
+                    class="mobile-link text-lg font-display font-bold text-slate-700 dark:text-dm-200 hover:text-brand-600 dark:hover:text-brand-400 py-2 border-b border-slate-50 dark:border-dm-700">Admin</a>
                 {% endif %} {% if session.get('user_id') %}
-                <div class="pt-4 mt-4 border-t border-slate-50">
-                    <span class="block text-sm font-medium text-slate-500 mb-2">Halo, {{ session.get('user_name')
+                <div class="pt-4 mt-4 border-t border-slate-50 dark:border-dm-700">
+                    <span class="block text-sm font-medium text-slate-500 dark:text-dm-400 mb-2">Halo, {{ session.get('user_name')
                         }}</span>
                     <a href="{{ url_for('auth.logout') }}"
-                        class="mobile-link text-lg font-display font-medium text-red-500 hover:text-red-600 py-2">Keluar</a>
+                        class="mobile-link text-lg font-display font-medium text-red-500 dark:text-red-400 hover:text-red-600 py-2">Keluar</a>
                 </div>
                 {% else %}
                 <a href="{{ url_for('auth.login') }}"
@@ -207,7 +231,7 @@
                     Masuk
                 </a>
                 <a href="{{ url_for('auth.register') }}"
-                    class="mobile-link w-full text-center px-6 py-3 rounded-xl border-2 border-brand-600 text-brand-600 text-base font-medium hover:bg-brand-50 transition">
+                    class="mobile-link w-full text-center px-6 py-3 rounded-xl border-2 border-brand-600 text-brand-600 dark:text-brand-400 text-base font-medium hover:bg-brand-50 dark:hover:bg-brand-900/20 transition">
                     Daftar
                 </a>
                 {% endif %}
@@ -221,7 +245,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %} {% for category, message in messages %}
             <div
-                class="mb-4 p-4 rounded-xl flex items-center gap-3 shadow-sm border {% if category == 'success' %}bg-green-50 border-green-100 text-green-700{% elif category == 'error' %}bg-red-50 border-red-100 text-red-700{% else %}bg-blue-50 border-blue-100 text-blue-700{% endif %}">
+                class="mb-4 p-4 rounded-xl flex items-center gap-3 shadow-sm border {% if category == 'success' %}bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30 text-green-700 dark:text-green-400{% elif category == 'error' %}bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30 text-red-700 dark:text-red-400{% else %}bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30 text-blue-700 dark:text-blue-400{% endif %}">
                 <i
                     class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'error' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
                 <span class="text-sm font-medium">{{ message }}</span>
@@ -236,16 +260,15 @@
     </main>
 
     <!-- Footer -->
-    <footer class="mt-20 border-t border-slate-200 bg-white/50 backdrop-blur-sm">
+    <footer class="mt-20 border-t border-slate-200 dark:border-dm-600 bg-white/50 dark:bg-dm-900/50 backdrop-blur-sm">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex items-center gap-2">
-                    <span class="font-display font-bold text-lg text-slate-900">MahaInsight</span>
-                    <span class="text-slate-400">|</span>
-                    <span class="text-sm text-slate-500">Curated Data Stories</span>
+                    <span class="font-display font-bold text-lg text-slate-900 dark:text-dm-100">MahaInsight</span>
+                    <span class="text-slate-400 dark:text-dm-500">|</span>
+                    <span class="text-sm text-slate-500 dark:text-dm-400">Curated Data Stories</span>
                 </div>
-                <p class="text-sm text-slate-400">&copy; 2025 Asymptra Labs</p>
-
+                <p class="text-sm text-slate-400 dark:text-dm-500">&copy; 2025 Asymptra Labs</p>
             </div>
         </div>
     </footer>
@@ -262,56 +285,53 @@
     <!-- Asymptra Labs Modal -->
 
     <div id="labsModal" class="fixed inset-0 z-[100] hidden" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0" id="labsBackdrop"
+        <div class="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm transition-opacity opacity-0" id="labsBackdrop"
             onclick="closeLabsModal()"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4 text-center">
-                <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:w-full sm:max-w-md scale-90 opacity-0 duration-300"
+                <div class="relative transform overflow-hidden rounded-3xl bg-white dark:bg-dm-800 text-left shadow-2xl transition-all sm:w-full sm:max-w-md scale-90 opacity-0 duration-300"
                     id="labsPanel">
                     <!-- Decorative Header -->
                     <div
-                        class="bg-gradient-to-br from-[#f5f3ff] via-white to-[#eff6ff] p-10 text-center relative overflow-hidden">
+                        class="bg-gradient-to-br from-[#f5f3ff] via-white to-[#eff6ff] dark:from-dm-700 dark:via-dm-800 dark:to-dm-700 p-10 text-center relative overflow-hidden">
                         <!-- Gradient Orbs -->
                         <div
-                            class="absolute -top-10 -left-10 w-40 h-40 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse">
+                            class="absolute -top-10 -left-10 w-40 h-40 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-30 dark:opacity-20 animate-pulse">
                         </div>
                         <div
-                            class="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-1000">
+                            class="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-300 dark:bg-blue-800 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-30 dark:opacity-20 animate-pulse delay-1000">
                         </div>
 
                         <div class="relative z-10">
                             <div class="mx-auto mb-6 flex justify-center">
                                 <span
-                                    class="bg-white/50 backdrop-blur-md p-4 rounded-2xl shadow-sm ring-1 ring-black/5">
+                                    class="bg-white/50 dark:bg-dm-700/50 backdrop-blur-md p-4 rounded-2xl shadow-sm ring-1 ring-black/5 dark:ring-white/10">
                                     <img src="{{ url_for('static', filename='assets/logo3.png') }}" alt="Logo"
                                         class="w-12 h-12 object-contain" />
                                 </span>
                             </div>
-                            <h3 class="text-3xl font-display font-bold text-[#2e1065] mb-2 tracking-tight">
+                            <h3 class="text-3xl font-display font-bold text-[#2e1065] dark:text-brand-300 mb-2 tracking-tight">
                                 Asymptra Labs
                             </h3>
-
-                            <p class="text-[#5b21b6] font-medium text-sm">
+                            <p class="text-[#5b21b6] dark:text-brand-400 font-medium text-sm">
                                 Explore experimental ideas.
                             </p>
                         </div>
                     </div>
 
                     <div class="px-8 py-8">
-                        <p class="text-slate-600 text-center mb-8 leading-relaxed">
+                        <p class="text-slate-600 dark:text-dm-300 text-center mb-8 leading-relaxed">
                             Jelajahi ekosistem aplikasi kami lainnya di
                             Asymptra Labs
-
                         </p>
 
                         <div class="space-y-3">
                             <a href="https://asymptra.com" target="_blank" onclick="closeLabsModal()"
-                                class="flex items-center justify-center w-full px-6 py-4 bg-gradient-to-r from-brand-300 to-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-500/30 transition transform hover:-transform-scale(0.5) gap-2 group">
+                                class="flex items-center justify-center w-full px-6 py-4 bg-gradient-to-r from-brand-300 to-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-500/30 transition gap-2 group">
                                 Lihat Asymptra Labs
-
                             </a>
                             <button type="button" onclick="closeLabsModal()"
-                                class="flex items-center justify-center w-full px-6 py-4 bg-slate-50 text-slate-700 rounded-xl font-medium hover:bg-slate-100 transition-all duration-300">
+                                class="flex items-center justify-center w-full px-6 py-4 bg-slate-50 dark:bg-dm-700 text-slate-700 dark:text-dm-200 rounded-xl font-medium hover:bg-slate-100 dark:hover:bg-dm-600 transition-all duration-300">
                                 Nanti Saja
                             </button>
                         </div>
@@ -348,6 +368,17 @@
             setTimeout(() => {
                 modal.classList.add("hidden");
             }, 300);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
         }
     </script>
 </body>

@@ -1,0 +1,231 @@
+ Plan: Rebrand, Dark Mode, SEO Enhancement & UX Fixes                                                                                          │
+│                                                                                                                                               │
+│ Context                                                                                                                                       │
+│                                                                                                                                               │
+│ MahaInsight is rebranding its parent org from "MahaLabs" (mahalabs.space) to "Asymptra Labs" (asymptra.com). The product name "MahaInsight"   │
+│ stays. Additionally, the site needs dark mode, better SEO/meta tags, icon fixes for social sharing, and UX polish.                            │
+│                                                                                                                                               │
+│ ---                                                                                                                                           │
+│ Phase 1: Rebrand (mahalabs → Asymptra Labs)                                                                                                   │
+│                                                                                                                                               │
+│ All occurrences to change:                                                                                                                    │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 130, 230                                                                                                                                │
+│ Old: MahaLabs (nav link)                                                                                                                      │
+│ New: Asymptra Labs                                                                                                                            │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 309                                                                                                                                     │
+│ Old: © 2025 Mahalabs                                                                                                                          │
+│ New: © 2025 Asymptra Labs                                                                                                                     │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 323                                                                                                                                     │
+│ Old: <!-- MahaLabs Modal -->                                                                                                                  │
+│ New: <!-- Asymptra Labs Modal -->                                                                                                             │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 370                                                                                                                                     │
+│ Old: Modal title MahaLabs                                                                                                                     │
+│ New: Asymptra Labs                                                                                                                            │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 383                                                                                                                                     │
+│ Old: Modal text MahaLabs                                                                                                                      │
+│ New: Asymptra Labs                                                                                                                            │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 388                                                                                                                                     │
+│ Old: https://mahalabs.space                                                                                                                   │
+│ New: https://asymptra.com                                                                                                                     │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/base.html                                                                                                                     │
+│ Line: 393                                                                                                                                     │
+│ Old: Lihat MahaLabs                                                                                                                           │
+│ New: Lihat Asymptra Labs                                                                                                                      │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/detail.html                                                                                                                   │
+│ Line: 234                                                                                                                                     │
+│ Old: AI dari MahaLabs                                                                                                                         │
+│ New: AI dari Asymptra Labs                                                                                                                    │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/index.html                                                                                                                    │
+│ Line: 88                                                                                                                                      │
+│ Old: petasight.mahalabs.space                                                                                                                 │
+│ New: petasight.asymptra.com                                                                                                                   │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/admin_create.html                                                                                                             │
+│ Line: 182                                                                                                                                     │
+│ Old: petasight.mahalabs.space                                                                                                                 │
+│ New: petasight.asymptra.com                                                                                                                   │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: templates/admin_edit.html                                                                                                               │
+│ Line: 220                                                                                                                                     │
+│ Old: petasight.mahalabs.space                                                                                                                 │
+│ New: petasight.asymptra.com                                                                                                                   │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: sitemap.xml                                                                                                                             │
+│ Line: 4, 10                                                                                                                                   │
+│ Old: insight.mahalabs.space                                                                                                                   │
+│ New: insight.asymptra.com                                                                                                                     │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: PRODUCTION_CHECKLIST.md                                                                                                                 │
+│ Line: multiple                                                                                                                                │
+│ Old: insight.mahalabs.space                                                                                                                   │
+│ New: insight.asymptra.com                                                                                                                     │
+│ ────────────────────────────────────────                                                                                                      │
+│ File: static/assets/                                                                                                                          │
+│ Line: -                                                                                                                                       │
+│ Old: Rename mahalabs_spin.png → asymptra_spin.png (if referenced, or just remove)                                                             │
+│ New:                                                                                                                                          │
+│ "MahaInsight" stays unchanged — it's the product name, not the org.                                                                           │
+│                                                                                                                                               │
+│ ---                                                                                                                                           │
+│ Phase 2: SEO & Favicon Fix                                                                                                                    │
+│                                                                                                                                               │
+│ 2A. Enhanced meta tags in templates/base.html <head>                                                                                          │
+│                                                                                                                                               │
+│ Add after existing description meta:                                                                                                          │
+│ - <meta name="robots" content="index, follow">                                                                                                │
+│ - <link rel="canonical" href="...">  (using request.path)                                                                                     │
+│ - Open Graph tags: og:type, og:title, og:description, og:url, og:image, og:site_name, og:locale                                               │
+│ - Twitter Card tags: twitter:card, twitter:title, twitter:description, twitter:image                                                          │
+│ - All using Jinja2 {% block %} so child templates can override                                                                                │
+│                                                                                                                                               │
+│ 2B. Fix favicon/icon declarations in templates/base.html                                                                                      │
+│                                                                                                                                               │
+│ Replace single favicon line with:                                                                                                             │
+│ - rel="icon" sizes 32x32 and 16x16                                                                                                            │
+│ - rel="apple-touch-icon" 180x180                                                                                                              │
+│ - rel="icon" 192x192 (Android)                                                                                                                │
+│ - <meta name="theme-color" content="#7c3aed">                                                                                                 │
+│ - <link rel="manifest"> for site.webmanifest                                                                                                  │
+│                                                                                                                                               │
+│ Generate resized PNGs from existing logo3.png using Python PIL.                                                                               │
+│                                                                                                                                               │
+│ 2C. Per-page OG overrides in templates/detail.html                                                                                            │
+│                                                                                                                                               │
+│ Override og:type → article, og:image → post.thumbnail_url                                                                                     │
+│                                                                                                                                               │
+│ 2D. Structured data (JSON-LD) in base.html and detail.html                                                                                    │
+│                                                                                                                                               │
+│ - WebSite schema in base.html with publisher "Asymptra Labs"                                                                                  │
+│ - Article schema in detail.html with headline, description, datePublished                                                                     │
+│                                                                                                                                               │
+│ 2E. Update sitemap.xml                                                                                                                        │
+│                                                                                                                                               │
+│ - Fix domain to insight.asymptra.com                                                                                                          │
+│ - Add /datasets, /register pages                                                                                                              │
+│ - Update lastmod date                                                                                                                         │
+│                                                                                                                                               │
+│ 2F. Add robots.txt route in app.py                                                                                                            │
+│                                                                                                                                               │
+│ Simple route returning User-agent/Allow/Sitemap directives.                                                                                   │
+│                                                                                                                                               │
+│ New files to create:                                                                                                                          │
+│                                                                                                                                               │
+│ - /static/assets/favicon-32x32.png (resize from logo3.png)                                                                                    │
+│ - /static/assets/favicon-16x16.png                                                                                                            │
+│ - /static/assets/apple-touch-icon.png (180x180)                                                                                               │
+│ - /static/assets/android-chrome-192x192.png                                                                                                   │
+│ - /static/assets/android-chrome-512x512.png                                                                                                   │
+│ - /static/assets/og-default.png (1200x630, brand card for social sharing)                                                                     │
+│ - /static/site.webmanifest                                                                                                                    │
+│                                                                                                                                               │
+│ ---                                                                                                                                           │
+│ Phase 3: Dark Mode                                                                                                                            │
+│                                                                                                                                               │
+│ 3A. Tailwind config — add darkMode: 'class'                                                                                                   │
+│                                                                                                                                               │
+│ 3B. Anti-FOUC script at top of <head> in base.html                                                                                            │
+│                                                                                                                                               │
+│ // Read localStorage before paint to prevent flash                                                                                            │
+│ if (stored === 'dark' || (!stored && prefersDark)) {                                                                                          │
+│     document.documentElement.classList.add('dark');                                                                                           │
+│ }                                                                                                                                             │
+│                                                                                                                                               │
+│ 3C. Toggle button in navbar (desktop + mobile)                                                                                                │
+│                                                                                                                                               │
+│ - Sun icon (light mode) / Moon icon (dark mode)                                                                                               │
+│ - toggleDarkMode() function adds/removes dark class on <html>                                                                                 │
+│ - Stores preference in localStorage                                                                                                           │
+│                                                                                                                                               │
+│ 3D. Theme transition animation in base.css                                                                                                    │
+│                                                                                                                                               │
+│ html.theme-transition, html.theme-transition *, ... {                                                                                         │
+│     transition: background-color 0.4s, color 0.3s, border-color 0.3s !important;                                                              │
+│ }                                                                                                                                             │
+│ Temporarily added during toggle, removed after 500ms.                                                                                         │
+│                                                                                                                                               │
+│ 3E. Dark mode CSS in base.css                                                                                                                 │
+│                                                                                                                                               │
+│ - html.dark .blob-bg → background: #0f172a                                                                                                    │
+│ - html.dark .blob → reduced opacity (0.25)                                                                                                    │
+│ - html.dark body → adjusted radial gradient                                                                                                   │
+│ - html.dark .prose → light text (#cbd5e1), light headings, adjusted code/table/blockquote colors                                              │
+│                                                                                                                                               │
+│ 3F. Dark classes on ALL templates                                                                                                             │
+│                                                                                                                                               │
+│ Every template gets dark: Tailwind utilities on:                                                                                              │
+│ - Backgrounds: bg-white → add dark:bg-dark-900 (or dark:bg-dark-800 for cards)                                                                │
+│ - Text: text-slate-900 → add dark:text-slate-100, text-slate-600 → add dark:text-slate-400                                                    │
+│ - Borders: border-slate-100 → add dark:border-dark-700                                                                                        │
+│ - Special surfaces: bg-[#FFFDF9] (article content) → add dark:bg-dark-800                                                                     │
+│ - Modals: All modal backgrounds, panels, text                                                                                                 │
+│ - Forms: Inputs, labels, placeholders                                                                                                         │
+│ - Cards: All card containers                                                                                                                  │
+│                                                                                                                                               │
+│ Templates to update: base.html, index.html, detail.html, datasets.html, auth_login.html, auth_register.html, auth_profile.html, admin.html,   │
+│ admin_create.html, admin_edit.html, admin_users.html                                                                                          │
+│                                                                                                                                               │
+│ 3G. Fix base.js scroll handler                                                                                                                │
+│                                                                                                                                               │
+│ Update navbar scroll behavior to swap dark mode classes alongside light ones.                                                                 │
+│                                                                                                                                               │
+│ 3H. Star background dark mode                                                                                                                 │
+│                                                                                                                                               │
+│ Adjust glow color opacity in star-background.js when dark class is present.                                                                   │
+│                                                                                                                                               │
+│ ---                                                                                                                                           │
+│ Phase 4: UX Enhancements                                                                                                                      │
+│                                                                                                                                               │
+│ 4A. Global focus-visible states in base.css                                                                                                   │
+│                                                                                                                                               │
+│ - Purple outline ring on keyboard focus                                                                                                       │
+│ - Remove outline on mouse click                                                                                                               │
+│                                                                                                                                               │
+│ 4B. Reading progress bar on detail.html                                                                                                       │
+│                                                                                                                                               │
+│ - Thin gradient bar fixed at top, grows with scroll percentage                                                                                │
+│                                                                                                                                               │
+│ 4C. Skeleton loading animation class in base.css                                                                                              │
+│                                                                                                                                               │
+│ - Useful for data loading states                                                                                                              │
+│                                                                                                                                               │
+│ 4D. Smooth scroll defaults already present (scroll-smooth on html)                                                                            │
+│                                                                                                                                               │
+│ ---                                                                                                                                           │
+│ Phase 5: Verification                                                                                                                         │
+│                                                                                                                                               │
+│ 1. grep -ri "mahalabs" across all source files → must return 0                                                                                │
+│ 2. Visual test every page in light + dark mode                                                                                                │
+│ 3. Validate OG tags render (check page source)                                                                                                │
+│ 4. Verify favicons appear in browser tab                                                                                                      │
+│ 5. Run Flask app and test all routes                                                                                                          │
+│                                                                                                                                               │
+│ ---                                                                                                                                           │
+│ Implementation Order                                                                                                                          │
+│                                                                                                                                               │
+│ Phase 1 (Rebrand) → Phase 2 (SEO) → Phase 3 (Dark Mode) → Phase 4 (UX) → Phase 5 (Verify)                                                     │
+│                                                                                                                                               │
+│ Critical Files (most changes)                                                                                                                 │
+│                                                                                                                                               │
+│ - templates/base.html — Phases 1, 2, 3                                                                                                        │
+│ - static/style/base.css — Phases 3, 4                                                                                                         │
+│ - templates/index.html — Phases 1, 3                                                                                                          │
+│ - templates/detail.html — Phases 1, 2, 3, 4                                                                                                   │
+│ - templates/datasets.html — Phase 3                                                                                                           │
+│ - static/js/base.js — Phase 3                                                                                                                 │
+│ - sitemap.xml — Phases 1, 2                                                                                                                   │
+│ - app.py — Phase 2                                                                                                                            │
+│ - All auth/admin templates — Phase 3           

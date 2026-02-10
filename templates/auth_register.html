@@ -6,38 +6,38 @@
 <div class="min-h-[80vh] flex items-center justify-center px-4 pt-20">
     <div class="w-full max-w-md">
         <!-- Card -->
-        <div class="glass rounded-3xl p-8 shadow-2xl">
+        <div class="bg-white/80 dark:bg-dm-800/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl dark:shadow-black/20 border border-white/50 dark:border-dm-600/50">
             <!-- Header -->
             <div class="text-center mb-8">
                 <div
                     class="w-16 h-16 bg-gradient-to-br from-brand-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/30">
                     <span class="text-white text-2xl font-bold">M</span>
                 </div>
-                <h1 class="font-display text-2xl font-bold text-slate-800">Daftar Akun</h1>
-                <p class="text-slate-500 mt-2">Dapatkan akses ke fitur AI MahaInsight</p>
+                <h1 class="font-display text-2xl font-bold text-slate-800 dark:text-dm-100">Daftar Akun</h1>
+                <p class="text-slate-500 dark:text-dm-400 mt-2">Dapatkan akses ke fitur AI MahaInsight</p>
             </div>
 
             <!-- Form -->
             <form method="POST" class="space-y-5">
                 <div>
-                    <label for="full_name" class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap</label>
+                    <label for="full_name" class="block text-sm font-semibold text-slate-700 dark:text-dm-200 mb-2">Nama Lengkap</label>
                     <input type="text" id="full_name" name="full_name" required
-                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition placeholder-slate-400">
+                        class="w-full px-4 py-3 bg-white dark:bg-dm-700 border border-slate-200 dark:border-dm-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition placeholder-slate-400 dark:placeholder-dm-500 dark:text-dm-100">
                 </div>
 
                 <div>
-                    <label for="email" class="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                    <label for="email" class="block text-sm font-semibold text-slate-700 dark:text-dm-200 mb-2">Email</label>
                     <input type="email" id="email" name="email" required
-                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition placeholder-slate-400">
+                        class="w-full px-4 py-3 bg-white dark:bg-dm-700 border border-slate-200 dark:border-dm-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition placeholder-slate-400 dark:placeholder-dm-500 dark:text-dm-100">
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                    <label for="password" class="block text-sm font-semibold text-slate-700 dark:text-dm-200 mb-2">Password</label>
                     <div class="relative">
                         <input type="password" id="password" name="password" required
-                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition placeholder-slate-400">
+                            class="w-full px-4 py-3 bg-white dark:bg-dm-700 border border-slate-200 dark:border-dm-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition placeholder-slate-400 dark:placeholder-dm-500 dark:text-dm-100">
                         <button type="button" onclick="togglePassword()"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dm-400 hover:text-slate-600 dark:hover:text-dm-200">
                             <i id="eye-icon" class="bi bi-eye"></i>
                         </button>
                     </div>
@@ -51,14 +51,14 @@
 
             <!-- Divider -->
             <div class="flex items-center my-6">
-                <div class="flex-1 border-t border-slate-200"></div>
-                <span class="px-4 text-sm text-slate-500">atau</span>
-                <div class="flex-1 border-t border-slate-200"></div>
+                <div class="flex-1 border-t border-slate-200 dark:border-dm-600"></div>
+                <span class="px-4 text-sm text-slate-500 dark:text-dm-400">atau</span>
+                <div class="flex-1 border-t border-slate-200 dark:border-dm-600"></div>
             </div>
 
             <!-- Google Sign-Up Button -->
             <a href="{{ url_for('auth.google_login') }}"
-                class="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-700 font-semibold rounded-xl transition transform hover:scale-[1.02] shadow-sm">
+                class="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white dark:bg-dm-700 border-2 border-slate-200 dark:border-dm-600 hover:border-slate-300 dark:hover:border-dm-500 text-slate-700 dark:text-dm-200 font-semibold rounded-xl transition transform hover:scale-[1.02] shadow-sm">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -73,9 +73,9 @@
             </a>
 
             <!-- Links -->
-            <div class="mt-6 text-center text-sm text-slate-600">
+            <div class="mt-6 text-center text-sm text-slate-600 dark:text-dm-300">
                 Sudah punya akun?
-                <a href="{{ url_for('auth.login') }}" class="font-semibold text-brand-600 hover:text-brand-700">Masuk di
+                <a href="{{ url_for('auth.login') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300">Masuk di
                     sini</a>
             </div>
         </div>
