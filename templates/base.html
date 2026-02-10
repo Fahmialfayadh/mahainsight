@@ -19,13 +19,24 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://mahainsight.asymptra.com/" />
 
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "MahaInsight by Asymptra",
+      "url": "https://mahainsight.asymptra.com/",
+      "logo": "https://mahainsight.asymptra.com/static/assets/logo3.png"
+    }
+    </script>
+
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="MahaInsight by Asymptra" />
     <meta property="og:title" content="MahaInsight by Asymptra | Eksplorasi Cerita di Balik Data" />
     <meta property="og:description"
         content="Platform publikasi analisis mendalam dengan transparansi data penuh — oleh Asymptra Labs." />
-    <meta property="og:image" content="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
+    <meta property="og:image" content="https://mahainsight.asymptra.com/static/assets/logo3.png" />
     <meta property="og:url" content="https://mahainsight.asymptra.com/" />
 
     <!-- Twitter Card -->
@@ -36,11 +47,10 @@
     <meta name="twitter:image" content="https://mahainsight.asymptra.com/static/assets/logo3.png" />
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/png" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
-    <link rel="apple-touch-icon" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
-    <link rel="manifest" href="https://mahainsight.asymptra.com/static/manifest.json" />
-    <link rel="mask-icon" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" color="#7c3aed" />
-    <link rel="shortcut icon" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
