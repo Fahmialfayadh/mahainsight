@@ -23,22 +23,24 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="MahaInsight by Asymptra" />
     <meta property="og:title" content="MahaInsight by Asymptra | Eksplorasi Cerita di Balik Data" />
-    <meta property="og:description" content="Platform publikasi analisis mendalam dengan transparansi data penuh — oleh Asymptra Labs." />
+    <meta property="og:description"
+        content="Platform publikasi analisis mendalam dengan transparansi data penuh — oleh Asymptra Labs." />
     <meta property="og:image" content="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
     <meta property="og:url" content="https://mahainsight.asymptra.com/" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="MahaInsight by Asymptra | Eksplorasi Cerita di Balik Data" />
-    <meta name="twitter:description" content="Platform publikasi analisis mendalam dengan transparansi data penuh. Oleh Asymptra Labs." />
+    <meta name="twitter:description"
+        content="Platform publikasi analisis mendalam dengan transparansi data penuh. Oleh Asymptra Labs." />
     <meta name="twitter:image" content="https://mahainsight.asymptra.com/static/assets/logo3.png" />
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/pavicon.ico') }}" />
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
-    <link rel="mask-icon" href="{{ url_for('static', filename='assets/pavicon.ico') }}" color="#7c3aed" />
-    <link rel="shortcut icon" href="{{ url_for('static', filename='png') }}" />
+    <link rel="icon" type="image/png" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
+    <link rel="apple-touch-icon" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
+    <link rel="manifest" href="https://mahainsight.asymptra.com/static/manifest.json" />
+    <link rel="mask-icon" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" color="#7c3aed" />
+    <link rel="shortcut icon" href="https://mahainsight.asymptra.com/static/assets/pavicon.ico" />
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -70,7 +72,7 @@
                             300: "#b5a999",
                             200: "#d4c8b8",
                             100: "#e8e0d4",
-                            50:  "#f5efe5",
+                            50: "#f5efe5",
                         },
                         warm: {
                             50: "#fffdf5",
@@ -106,7 +108,8 @@
     {% block extra_head %}{% endblock %}
 </head>
 
-<body class="text-slate-800 dark:text-dm-100 antialiased selection:bg-brand-200 selection:text-brand-900 dark:selection:bg-brand-900 dark:selection:text-brand-200 min-h-screen flex flex-col transition-colors duration-200">
+<body
+    class="text-slate-800 dark:text-dm-100 antialiased selection:bg-brand-200 selection:text-brand-900 dark:selection:bg-brand-900 dark:selection:text-brand-200 min-h-screen flex flex-col transition-colors duration-200">
     <!-- Background Decoration -->
     <div class="blob-bg">
         <div class="blob blob-1"></div>
@@ -151,7 +154,8 @@
 
                 <!-- Auth Buttons for User -->
                 {% if session.get('user_id') %}
-                <div class="hidden md:flex items-center gap-4 border-l border-slate-200 dark:border-dm-600 pl-4 ml-2 relative group">
+                <div
+                    class="hidden md:flex items-center gap-4 border-l border-slate-200 dark:border-dm-600 pl-4 ml-2 relative group">
                     <button
                         class="text-sm font-medium text-slate-600 dark:text-dm-300 hover:text-brand-600 dark:hover:text-brand-400 transition flex items-center gap-1">
                         Halo, {{ session.get('user_name', 'User') }}
@@ -220,7 +224,8 @@
                     class="mobile-link text-lg font-display font-bold text-slate-700 dark:text-dm-200 hover:text-brand-600 dark:hover:text-brand-400 py-2 border-b border-slate-50 dark:border-dm-700">Admin</a>
                 {% endif %} {% if session.get('user_id') %}
                 <div class="pt-4 mt-4 border-t border-slate-50 dark:border-dm-700">
-                    <span class="block text-sm font-medium text-slate-500 dark:text-dm-400 mb-2">Halo, {{ session.get('user_name')
+                    <span class="block text-sm font-medium text-slate-500 dark:text-dm-400 mb-2">Halo, {{
+                        session.get('user_name')
                         }}</span>
                     <a href="{{ url_for('auth.logout') }}"
                         class="mobile-link text-lg font-display font-medium text-red-500 dark:text-red-400 hover:text-red-600 py-2">Keluar</a>
@@ -285,8 +290,8 @@
     <!-- Asymptra Labs Modal -->
 
     <div id="labsModal" class="fixed inset-0 z-[100] hidden" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm transition-opacity opacity-0" id="labsBackdrop"
-            onclick="closeLabsModal()"></div>
+        <div class="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm transition-opacity opacity-0"
+            id="labsBackdrop" onclick="closeLabsModal()"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4 text-center">
                 <div class="relative transform overflow-hidden rounded-3xl bg-white dark:bg-dm-800 text-left shadow-2xl transition-all sm:w-full sm:max-w-md scale-90 opacity-0 duration-300"
@@ -310,7 +315,8 @@
                                         class="w-12 h-12 object-contain" />
                                 </span>
                             </div>
-                            <h3 class="text-3xl font-display font-bold text-[#2e1065] dark:text-brand-300 mb-2 tracking-tight">
+                            <h3
+                                class="text-3xl font-display font-bold text-[#2e1065] dark:text-brand-300 mb-2 tracking-tight">
                                 Asymptra Labs
                             </h3>
                             <p class="text-[#5b21b6] dark:text-brand-400 font-medium text-sm">
