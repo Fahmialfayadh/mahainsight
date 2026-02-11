@@ -86,6 +86,24 @@ def detect_semantic_columns(df):
                 
     return cols
 
+def detect_entity_diversity(df, semantic_cols):
+    """
+    Determine if dataset contains multiple entities (countries, regions)
+    and return diversity metrics.
+    """
+    country_cols = semantic_cols.get('country', [])
+    if not country_cols:
+        return {"type": "single_entity", "entity_count": 0}
+
+    col = country_cols[0]
+    unique_entities = df[col].dropna().unique()
+    return {
+        "type": "multi_entity" if len(unique_entities) > 1 else "single_entity",
+        "entity_column": col,
+        "entity_count": int(len(unique_entities)),
+        "entities": [str(e) for e in unique_entities[:50]]
+    }
+
 def validate_aggregation_rules(semantic_type):
     """
     Return allowed aggregation methods for a given semantic type.

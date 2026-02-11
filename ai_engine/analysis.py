@@ -213,6 +213,69 @@ def analyze_dataset(data_url, query):
         if unit: comparison_insight["unit"] = unit
         insights['comparison'] = comparison_insight
 
+    # D. Cross-Entity Comparison
+    entity_info = schema.detect_entity_diversity(df, semantic_cols)
+    if entity_info["type"] == "multi_entity" and primary_metric:
+        entity_col = entity_info["entity_column"]
+        entity_stats = df.groupby(entity_col)[primary_metric].agg(['mean', 'min', 'max', 'count']).reset_index()
+        entity_stats = entity_stats.sort_values('mean', ascending=False)
+
+        cross_entity = {
+            "entity_column": entity_col,
+            "metric": primary_metric,
+            "total_entities": int(len(entity_stats)),
+            "top_5_by_mean": entity_stats.head(5).to_dict(orient='records'),
+            "bottom_5_by_mean": entity_stats.tail(5).to_dict(orient='records'),
+            "global_mean": float(round(df[primary_metric].mean(), 2)),
+            "global_median": float(round(df[primary_metric].median(), 2)),
+            "global_std": float(round(df[primary_metric].std(), 2)),
+        }
+        unit = metadata.get("units", {}).get(primary_metric)
+        if unit:
+            cross_entity["unit"] = unit
+        insights['cross_entity'] = cross_entity
+
+    # E. Distribution & Disparity
+    if primary_metric and len(df) >= 10:
+        full_series = df[primary_metric].dropna()
+        if len(full_series) >= 10:
+            quantiles = full_series.quantile([0.1, 0.25, 0.5, 0.75, 0.9]).to_dict()
+            skew_val = float(full_series.skew())
+
+            distribution = {
+                "metric": primary_metric,
+                "quantiles": {f"p{int(k*100)}": float(round(v, 2)) for k, v in quantiles.items()},
+                "skewness": float(round(skew_val, 3)),
+                "interpretation": "right-skewed" if skew_val > 0.5 else "left-skewed" if skew_val < -0.5 else "approximately symmetric"
+            }
+
+            if len(filtered_df) < len(df) and not filtered_df.empty:
+                filtered_mean = filtered_df[primary_metric].mean()
+                percentile_rank = float((full_series < filtered_mean).mean() * 100)
+                distribution["subset_percentile_rank"] = round(percentile_rank, 1)
+
+            insights['distribution'] = distribution
+
+    # F. Global Benchmark Context
+    if primary_metric and entity_info.get("type") == "multi_entity":
+        if semantic_cols['year']:
+            y_col = semantic_cols['year'][0]
+            latest_year = df[y_col].max()
+            latest_data = df[df[y_col] == latest_year]
+            entity_col = entity_info["entity_column"]
+
+            if not latest_data.empty and entity_col in latest_data.columns:
+                insights['global_benchmark'] = {
+                    "reference_year": int(latest_year),
+                    "metric": primary_metric,
+                    "global_mean_latest": float(round(latest_data[primary_metric].mean(), 2)),
+                    "global_median_latest": float(round(latest_data[primary_metric].median(), 2)),
+                    "entity_count_latest": int(latest_data[entity_col].nunique()),
+                }
+                unit = metadata.get("units", {}).get(primary_metric)
+                if unit:
+                    insights['global_benchmark']['unit'] = unit
+
     # 8. Aggregations
     aggregations = {}
     if not filtered_df.empty and not numeric_cols.empty:

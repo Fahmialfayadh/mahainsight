@@ -383,18 +383,28 @@ def ai_summary():
         
         content = strip_markdown(post.get("content_md", ""))
         
-        prompt = f"""
-        Your name is Vercax. You are a helpful data analyst assistant. 
-        Please provide a concise summary of the following article.
-        
-        Article Content:
-        {content[:4000]}  # Limit content length
-        
-        {f'Dataset Context based on attached CSV:{data_context}' if data_context else ''}
-        
-        Focus on the key insights and findings. Use Markdown formatting.
-        """
-        
+        prompt = f"""Your name is Vercax. You are a data analyst assistant for MahaInsight.
+
+TASK: Generate an ORIGINAL summary of the article below.
+
+STRICT RULES:
+1. PARAPHRASE everything. Do NOT copy sentences or phrases directly from the article.
+2. Synthesize the key findings into your own words and structure.
+3. Highlight 3-5 most important data insights or conclusions.
+4. If dataset context is available, cross-reference the article claims with the actual data.
+5. Add brief analytical commentary — what makes these findings significant?
+6. Keep the summary concise (150-250 words).
+7. Use Markdown formatting with bullet points for key insights.
+8. Respond in Bahasa Indonesia unless the article is in English.
+
+ARTICLE CONTENT:
+{content[:4000]}
+
+{f'DATASET CONTEXT (from attached CSV): {data_context}' if data_context else ''}
+
+Remember: Write as if you are explaining the article to a colleague. Use your OWN words and sentence structures. Never copy-paste from the article text.
+"""
+
         completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
             model="llama-3.1-8b-instant",
@@ -412,13 +422,18 @@ def ai_chat():
     data = request.json
     post_id = data.get("post_id")
     question = data.get("question")
-    
+    thinking_mode = data.get("thinking", False)
+
     if not post_id or not question:
         return jsonify({"error": "Missing parameters"}), 400
         
     user = get_current_user()
     user_id = user["user_id"] if user else None
     is_admin = user["is_admin"] if user else False
+    
+    # Safely get user name from session (avoid RuntimeError outside request context)
+    from flask import has_request_context
+    user_name = session.get('user_name', 'User') if has_request_context() else 'User'
     
     # === RATE LIMIT CHECK ===
     remaining_quota = 3 # default
@@ -447,67 +462,96 @@ def ai_chat():
 
     try:
         client = Groq(api_key=api_key)
-        
-        # Use simple pandas Markdown for fallback if needed inside the engine, 
-        # but the engine handles formatting now.
-        
+
         # === CALL PYTHON ANALYSIS ENGINE ===
         from ai_engine.analysis import analyze_dataset
         import json
-        
-        # The engine performs filtering and calculations based on the query
-        # Returns a Dict (Schema V2)
+
         analysis_dict = analyze_dataset(post.get("data_url"), question)
-        
-        # Convert to strict JSON string for the LLM
         analysis_json = json.dumps(analysis_dict, indent=2, default=str)
-        
+
         content = strip_markdown(post.get("content_md", ""))
-        
-        system_prompt = f"""
-        You are Vercax, an expert data analyst AI for MahaInsight.
-        
-        Usage Instructions:
-        1. A Python Analysis Engine has ALREADY processed the user's question against the dataset.
-        2. It has provided the "PYTHON ANALYSIS RESULT" below in strictly structured JSON format.
-        3. **TRUST RULE**: The values in `aggregations` and `confidence` are calculated facts. Use them directly. Do not re-calculate.
-        4. **CONFIDENCE CHECK**: Look at `confidence.score`. If 'low', warn the user that the data is limited.
-        5. **CONTEXTUALIZE**: Use `metadata.units` to ensure every number you cite has the correct unit (%, USD, etc).
 
-        CONTEXT 1: The Article
-        {content[:3000]}
+        thinking_instruction = ""
+        if thinking_mode:
+            thinking_instruction = """
+IMPORTANT: The user has enabled Thinking Mode. You MUST structure your response as follows:
 
-        CONTEXT 2: PYTHON ANALYSIS RESULT (JSON)
-        ```json
-        {analysis_json}
-        ```
+1. First, wrap your step-by-step reasoning inside <thinking> and </thinking> tags.
+   - Break down the question
+   - Identify which data points are relevant
+   - Show your analytical reasoning
+   - Note any caveats or limitations
 
-        Answer the user's question using the specific facts, units, and stats found in Context 2.
-        """
-        
-        completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question}
-            ],
-            model="llama-3.1-8b-instant",
-        )
-        
-        
-        # Increment counter (if not admin, or we track admin usage too but don't limit?)
-        # Let's track everyone for analytics, but only limit non-admins
+2. Then, provide your final answer inside <answer> and </answer> tags.
+   - This should be your polished, well-formatted response
+   - Use Markdown formatting
+
+You MUST use both tags. Do not skip the thinking section.
+"""
+
+        system_prompt = f"""{thinking_instruction}You are Vercax, an expert data analyst AI for MahaInsight.
+
+PERSONALIZATION: The user's name is "{user_name}". Greet them by name in your first response (e.g., "Hai {user_name}," or "Halo {user_name},") and address them naturally throughout the conversation when appropriate. Use their name warmly but not excessively.
+
+Instructions:
+1. A Python Analysis Engine has ALREADY processed the user's question against the dataset and provided pre-computed results below.
+2. **TRUST RULE**: The values in `aggregations` and `confidence` are calculated facts. Use them directly. Do not re-calculate.
+3. **CONFIDENCE CHECK**: Look at `confidence.score`. If 'low', warn the user that the data is limited.
+4. **CONTEXTUALIZE**: Use `metadata.units` to ensure every number you cite has the correct unit (%, USD, etc).
+5. When cross-entity or global benchmark data is available in the analysis, use it to provide broader global context. Do not focus solely on one country unless the user specifically asks about it.
+
+CRITICAL RULE: NEVER reference internal system labels, context numbers, or structural markers in your response. Do NOT say "berdasarkan konteks 1", "menurut analisis 2", "dari data pertama", "context 1", "context 2", or anything similar. Present information naturally as if you know it directly.
+
+--- ARTICLE CONTENT ---
+{content[:3000]}
+
+--- PRE-COMPUTED DATA ANALYSIS ---
+```json
+{analysis_json}
+```
+
+Answer the user's question using the specific facts, units, and stats from the analysis results above. Respond in the same language the user uses. Use Markdown formatting.
+"""
+
+        # Increment usage before streaming starts
         increment_user_ai_usage(user_id, post_id)
-        
-        # Calculate new remaining
-        if not is_admin:
-            new_remaining = remaining_quota - 1
-        else:
-            new_remaining = 999
-        
-        return jsonify({
-            "answer": completion.choices[0].message.content,
-            "remaining": new_remaining
-        })
+        new_remaining = (remaining_quota - 1) if not is_admin else 999
+
+        def generate_stream():
+            try:
+                stream = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": question}
+                    ],
+                    model="llama-3.3-70b-versatile",
+                    stream=True,
+                )
+
+                for chunk in stream:
+                    delta = chunk.choices[0].delta
+                    if delta.content:
+                        payload = json.dumps({"type": "token", "content": delta.content})
+                        yield f"data: {payload}\n\n"
+
+                # Send final event with remaining quota
+                done_payload = json.dumps({"type": "done", "remaining": new_remaining})
+                yield f"data: {done_payload}\n\n"
+            except Exception as stream_err:
+                error_payload = json.dumps({"type": "error", "message": str(stream_err)})
+                yield f"data: {error_payload}\n\n"
+
+        from flask import Response
+        return Response(
+            generate_stream(),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+                'Connection': 'keep-alive',
+            }
+        )
     except Exception as e:
         print(f"AI Chat Error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -529,6 +573,115 @@ def get_ai_usage_api(post_id):
         
     usage = get_user_ai_usage(user_id, post_id)
     return jsonify({"remaining": max(0, 3 - usage), "is_admin": False})
+
+
+@app.route("/api/ai/quiz/generate", methods=["POST"])
+@jwt_required
+def ai_quiz_generate():
+    """Generate 5 MCQ questions about the article/data."""
+    post_id = request.json.get("post_id")
+    if not post_id:
+        return jsonify({"error": "Post ID required"}), 400
+
+    user = get_current_user()
+    user_id = user["user_id"] if user else None
+    is_admin = user["is_admin"] if user else False
+
+    # Quiz rate limit: 2 per article per 24h for non-admins
+    quiz_namespace = -abs(int(post_id))
+    if not is_admin:
+        quiz_usage = get_user_ai_usage(user_id, quiz_namespace)
+        if quiz_usage >= 2:
+            return jsonify({
+                "error": "Quiz limit reached",
+                "message": "Anda telah mencapai batas 2 quiz untuk artikel ini dalam 24 jam."
+            }), 429
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return jsonify({"error": "AI service not configured"}), 503
+
+    posts = get_all_posts()
+    post = next((p for p in posts if p["id"] == int(post_id)), None)
+    if not post:
+        return jsonify({"error": "Post not found"}), 404
+
+    try:
+        client = Groq(api_key=api_key)
+        content = strip_markdown(post.get("content_md", ""))
+
+        quiz_prompt = f"""You are a quiz generator for a data analysis article. Generate exactly 5 multiple-choice questions.
+
+ARTICLE:
+{content[:3500]}
+
+
+Rules:
+1. Generate exactly 5 questions based STRICTLY on the text provided above. DO NOT use any external knowledge or data not in the text.
+2. Each question must have exactly 4 options labeled A, B, C, D.
+3. Exactly one option is correct per question.
+4. REQUIRED: Include a brief explanation for the correct answer and CITE the specific paragraph number where the information is found (e.g., "See Par. 2").
+5. Mix difficulty: 2 easy (factual recall), 2 medium (inference), 1 hard (analytical).
+6. Questions must be in Bahasa Indonesia.
+7. focus on content comprehension.
+8. DO NOT use any emojis.
+
+OUTPUT FORMAT: Return ONLY valid JSON with this exact structure:
+{{"questions": [
+  {{
+    "id": 1,
+    "question": "Question text here?",
+    "options": {{
+      "A": "Option A text",
+      "B": "Option B text",
+      "C": "Option C text",
+      "D": "Option D text"
+    }},
+    "correct": "B",
+    "explanation": "Brief explanation of why B is correct (point the paragraph)."
+  }}
+]}}
+"""
+
+        completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": quiz_prompt}],
+            model="llama-3.1-8b-instant",
+            temperature=0.7,
+        )
+
+        raw_response = completion.choices[0].message.content
+        import json as json_mod
+        import re as re_mod
+
+        # Parse JSON response
+        try:
+            quiz_data = json_mod.loads(raw_response)
+        except json_mod.JSONDecodeError:
+            # Try extracting from markdown code blocks
+            json_match = re_mod.search(r'```(?:json)?\s*([\s\S]*?)\s*```', raw_response)
+            if json_match:
+                quiz_data = json_mod.loads(json_match.group(1))
+            else:
+                return jsonify({"error": "Failed to parse quiz data"}), 500
+
+        # Normalize: extract questions array
+        if isinstance(quiz_data, dict) and "questions" in quiz_data:
+            questions = quiz_data["questions"]
+        elif isinstance(quiz_data, list):
+            questions = quiz_data
+        else:
+            questions = [quiz_data]
+
+        questions = questions[:5]
+
+        # Track quiz usage
+        increment_user_ai_usage(user_id, quiz_namespace)
+
+        return jsonify({"questions": questions})
+
+    except Exception as e:
+        print(f"Quiz Generation Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # @app.route("/api/plotly-chart")

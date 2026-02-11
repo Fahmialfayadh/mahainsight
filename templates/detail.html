@@ -5,383 +5,522 @@
 
 {% block content %}
 <article class="pt-28 md:pt-32 pb-20">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <article class="pt-28 md:pt-32 pb-20">
+        <div class="max-w-[95%] xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <!-- Header -->
-        <header class="text-center mb-12">
-            <!-- Meta -->
-            <div class="flex items-center justify-center gap-3 text-sm text-slate-500 dark:text-dm-400 mb-6">
-                <span class="flex items-center gap-1.5 bg-slate-50 dark:bg-dm-700 px-3 py-1 rounded-full border border-slate-100 dark:border-dm-600">
-                    <i class="bi bi-calendar3"></i>
-                    {{ post.created_at[:10] if post.created_at else 'N/A' }}
-                </span>
-                {% if post.source_name %}
-                <span class="flex items-center gap-1.5 bg-slate-50 dark:bg-dm-700 px-3 py-1 rounded-full border border-slate-100 dark:border-dm-600">
-                    <i class="bi bi-building"></i>
-                    {{ post.source_name }}
-                </span>
-                {% endif %}
-            </div>
+            <!-- Header -->
+            <header class="text-center mb-12">
+                <!-- Meta -->
+                <div class="flex items-center justify-center gap-3 text-sm text-slate-500 dark:text-dm-400 mb-6">
+                    <span
+                        class="flex items-center gap-1.5 bg-slate-50 dark:bg-dm-700 px-3 py-1 rounded-full border border-slate-100 dark:border-dm-600">
+                        <i class="bi bi-calendar3"></i>
+                        {{ post.created_at[:10] if post.created_at else 'N/A' }}
+                    </span>
+                    {% if post.source_name %}
+                    <span
+                        class="flex items-center gap-1.5 bg-slate-50 dark:bg-dm-700 px-3 py-1 rounded-full border border-slate-100 dark:border-dm-600">
+                        <i class="bi bi-building"></i>
+                        {{ post.source_name }}
+                    </span>
+                    {% endif %}
+                </div>
 
-            <h1 class="text-4xl md:text-5xl font-display font-bold text-slate-900 dark:text-dm-100 leading-tight mb-8">
-                {{ post.title }}
-            </h1>
-        </header>
+                <h1
+                    class="text-4xl md:text-5xl font-display font-bold text-slate-900 dark:text-dm-100 leading-tight mb-8">
+                    {{ post.title }}
+                </h1>
+            </header>
 
-        <!-- Visualization / Thumbnail -->
-        {% if post.thumbnail_url %}
-        <figure class="mb-12 rounded-3xl overflow-hidden shadow-2xl shadow-brand-900/5 ring-1 ring-slate-900/5 dark:ring-dm-500/20">
-            <img src="{{ post.thumbnail_url }}" alt="{{ post.title }}" class="w-full h-auto">
-        </figure>
-        {% endif %}
-
-        <!-- Interactive Plotly Visualizations (supports multiple) -->
-        {% if post.viz_urls or post.viz_url %}
-        <section class="mb-12 space-y-6" id="visualization-section">
-            {% set visualizations = post.viz_urls|default([]) %}
-            {% if post.viz_url and not post.viz_urls %}
-            {% set visualizations = [{'url': post.viz_url, 'title': 'Visualisasi'}] %}
+            <!-- Visualization / Thumbnail -->
+            {% if post.thumbnail_url %}
+            <figure
+                class="mb-12 rounded-3xl overflow-hidden shadow-2xl shadow-brand-900/5 ring-1 ring-slate-900/5 dark:ring-dm-500/20">
+                <img src="{{ post.thumbnail_url }}" alt="{{ post.title }}" class="w-full h-auto">
+            </figure>
             {% endif %}
 
-            {% for viz in visualizations %}
-            <div class="bg-white dark:bg-dm-800 rounded-2xl shadow-sm border border-slate-200 dark:border-dm-600 overflow-hidden viz-card"
-                id="viz-{{ loop.index }}">
-                <!-- Simple Header -->
-                <div class="px-5 py-3 border-b border-slate-100 dark:border-dm-600 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span
-                            class="w-8 h-8 bg-slate-100 dark:bg-dm-600 rounded-lg flex items-center justify-center text-slate-600 dark:text-dm-300 text-sm font-semibold">
-                            {{ loop.index }}
-                        </span>
-                        <h3 class="font-medium text-slate-800 dark:text-dm-200 text-sm">
-                            {{ viz.title|default('Visualisasi ' ~ loop.index) }}
-                        </h3>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <button onclick="toggleVizFullscreen({{ loop.index }})"
-                            class="p-2 rounded-lg text-slate-400 dark:text-dm-400 hover:text-slate-600 dark:hover:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 transition"
-                            title="Fullscreen">
-                            <i class="bi bi-arrows-fullscreen text-sm" id="fs-icon-{{ loop.index }}"></i>
-                        </button>
-                        <a href="{{ viz.url }}" target="_blank"
-                            class="p-2 rounded-lg text-slate-400 dark:text-dm-400 hover:text-slate-600 dark:hover:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 transition"
-                            title="Buka di Tab Baru">
-                            <i class="bi bi-box-arrow-up-right text-sm"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Visualization Container -->
-                <div class="relative" id="viz-container-{{ loop.index }}">
-
-                    <!-- Mobile: Show placeholder with "View Interactive" button -->
-                    <div class="md:hidden">
-                        <div
-                            class="aspect-[4/3] bg-slate-100 dark:bg-dm-600 flex flex-col items-center justify-center p-6 text-center viz-placeholder-{{ loop.index }}">
-                            <i class="bi bi-graph-up text-4xl text-slate-300 dark:text-dm-500 mb-3"></i>
-                            <p class="text-sm text-slate-500 dark:text-dm-400 mb-4">Visualisasi interaktif tersedia</p>
-                            <button
-                                onclick="openVizFocusMode({{ loop.index }}, '{{ url_for('viz_proxy', url=viz.url) }}')"
-                                class="px-5 py-2.5 bg-slate-900 dark:bg-dm-100 text-white dark:text-dm-950 text-sm font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-dm-200 transition flex items-center gap-2">
-                                <i class="bi bi-arrows-fullscreen"></i> Lihat Visualisasi Interaktif
-                            </button>
-                            <p class="text-xs text-slate-400 dark:text-dm-400 mt-3">Ketuk untuk mode fokus (zoom & pan)</p>
-                        </div>
-                    </div>
-
-                    <!-- Desktop: Show iframe directly -->
-                    <div class="hidden md:block">
-                        <div id="vizLoading-{{ loop.index }}"
-                            class="absolute inset-0 flex items-center justify-center bg-white dark:bg-dm-800 z-10">
-                            <div class="text-center">
-                                <div
-                                    class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-slate-200 dark:border-dm-600 border-t-slate-600 dark:border-t-dm-300 mb-2">
-                                </div>
-                                <p class="text-xs text-slate-400 dark:text-dm-400">Memuat visualisasi...</p>
-                            </div>
-                        </div>
-                        <div class="h-[550px]">
-                            <iframe data-src="{{ url_for('viz_proxy', url=viz.url) }}"
-                                class="w-full h-full border-0 viz-iframe"
-                                onload="this.dataset.loaded && document.getElementById('vizLoading-{{ loop.index }}').classList.add('hidden')"
-                                loading="lazy"></iframe>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </section>
-        {% endif %}
-
-        <!-- Action Bar - Static on mobile, sticky on desktop -->
-        <div class="md:top-24 z-30 mb-8">
-            <div
-                class="bg-white/90 dark:bg-dm-800/90 backdrop-blur-md border border-slate-200 dark:border-dm-600 shadow-sm rounded-xl p-2 flex flex-wrap justify-center gap-1 md:gap-2 max-w-fit mx-auto">
-
-
-
-                <!-- primary ACTIONS -->
-                {% if post.data_url %}
-                <button onclick="previewData('{{ post.data_url }}')"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-dm-200 bg-slate-50 dark:bg-dm-700 hover:bg-slate-100 dark:hover:bg-dm-600 transition flex items-center gap-2">
-                    <i class="bi bi-table"></i> Preview Data
-                </button>
+            <!-- Interactive Plotly Visualizations (supports multiple) -->
+            {% if post.viz_urls or post.viz_url %}
+            <section class="mb-12 space-y-6" id="visualization-section">
+                {% set visualizations = post.viz_urls|default([]) %}
+                {% if post.viz_url and not post.viz_urls %}
+                {% set visualizations = [{'url': post.viz_url, 'title': 'Visualisasi'}] %}
                 {% endif %}
 
-                {% if post.source_link %}
-                <a href="{{ post.source_link }}" target="_blank" rel="noopener noreferrer"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-dm-200 bg-slate-50 dark:bg-dm-700 hover:bg-slate-100 dark:hover:bg-dm-600 transition flex items-center gap-2">
-                    <i class="bi bi-box-arrow-up-right"></i> Sumber
-                </a>
-                {% endif %}
-
-                <a href="#ai-chat"
-                    class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-800 dark:text-dm-200 bg-slate-200 dark:bg-dm-600 hover:bg-slate-300 dark:hover:bg-dm-500 shadow-md shadow-slate-300/40 dark:shadow-black/20 transition flex items-center gap-2">
-                    <i class="bi bi-chat-dots-fill"></i> Vercax AI
-                </a>
-                <!-- CTA -->
-                {% if post.petasight_link %}
-                <a href="{{ post.petasight_link }}" target="_blank" rel="noopener noreferrer"
-                    class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition flex items-center gap-2">
-                    <i class="bi bi-map-fill"></i> Petasight
-                </a>
-                {% endif %}
-                <!-- secondary MENU -->
-                <div class="relative group">
-                    <button
-                        class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 transition flex items-center gap-2">
-                        <i class="bi bi-three-dots"></i> Lainnya
-                    </button>
-
+                {% for viz in visualizations %}
+                <div class="bg-white dark:bg-dm-800 rounded-2xl shadow-sm border border-slate-200 dark:border-dm-600 overflow-hidden viz-card"
+                    id="viz-{{ loop.index }}">
+                    <!-- Simple Header -->
                     <div
-                        class="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-dm-800 rounded-xl shadow-xl border border-slate-100 dark:border-dm-600 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
-
-                        <a href="#content"
-                            class="px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-dm-200 hover:bg-slate-50 dark:hover:bg-dm-700 flex items-center gap-2">
-                            <i class="bi bi-text-paragraph"></i> Baca Artikel
-                        </a>
-
-                        <!-- Font Switcher -->
-                        <div class="mt-1 border-t border-slate-100 dark:border-dm-600 pt-1">
-                            <div class="px-3 py-2 text-xs font-semibold text-slate-400 dark:text-dm-400 uppercase tracking-wider">
-                                Tampilan
-                            </div>
-                            <div id="font-options-container">
-                                <!-- injected by JS -->
-                            </div>
+                        class="px-5 py-3 border-b border-slate-100 dark:border-dm-600 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 bg-slate-100 dark:bg-dm-600 rounded-lg flex items-center justify-center text-slate-600 dark:text-dm-300 text-sm font-semibold">
+                                {{ loop.index }}
+                            </span>
+                            <h3 class="font-medium text-slate-800 dark:text-dm-200 text-sm">
+                                {{ viz.title|default('Visualisasi ' ~ loop.index) }}
+                            </h3>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="toggleVizFullscreen({{ loop.index }})"
+                                class="p-2 rounded-lg text-slate-400 dark:text-dm-400 hover:text-slate-600 dark:hover:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 transition"
+                                title="Fullscreen">
+                                <i class="bi bi-arrows-fullscreen text-sm" id="fs-icon-{{ loop.index }}"></i>
+                            </button>
+                            <a href="{{ viz.url }}" target="_blank"
+                                class="p-2 rounded-lg text-slate-400 dark:text-dm-400 hover:text-slate-600 dark:hover:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 transition"
+                                title="Buka di Tab Baru">
+                                <i class="bi bi-box-arrow-up-right text-sm"></i>
+                            </a>
                         </div>
                     </div>
-                </div>
 
+                    <!-- Visualization Container -->
+                    <div class="relative" id="viz-container-{{ loop.index }}">
 
-            </div>
-        </div>
-
-
-        <!-- Content - Paper/Canvas Style -->
-        <div class="bg-[#FFFDF9] dark:bg-dm-800 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 ring-1 ring-slate-100 dark:ring-dm-600 p-6 sm:p-10 md:p-12">
-            <div id="content" style="font-family: var(--article-font, var(--font-body))"
-                class="prose prose-lg prose-slate dark:prose-invert max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-brand-600 dark:prose-a:text-brand-400 hover:prose-a:text-brand-700 dark:hover:prose-a:text-brand-300 prose-img:rounded-2xl">
-                {{ post.content_html|safe }}
-            </div>
-        </div>
-
-        <!-- AI Assistant Section -->
-        <div id="ai-chat">
-            {% if session.get('user_id') %}
-
-            <div
-                class="mt-8 bg-white dark:bg-dm-800 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 ring-1 ring-slate-100 dark:ring-dm-600 p-6 sm:p-10 border-t-4 border-brand-500">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-display font-bold text-slate-900 dark:text-dm-100 flex items-center gap-2">
-                        <i class="bi bi-robot text-brand-600 dark:text-brand-400"></i> Vercax AI
-                    </h2>
-                    <span class="px-3 py-1 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-sm font-medium rounded-full"
-                        id="ai-counter-badge">
-                        <i class="bi bi-chat-dots"></i> Memuat...
-                    </span>
-                </div>
-
-                <!-- Summary Section -->
-                <div class="mb-8 p-6 bg-slate-50 dark:bg-dm-700 rounded-xl">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-slate-800 dark:text-dm-200">Ringkasan Artikel</h3>
-                        <button onclick="generateSummary()" id="btn-summary"
-                            class="px-4 py-2 bg-white dark:bg-dm-800 border border-slate-200 dark:border-dm-600 text-slate-700 dark:text-dm-200 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-dm-600 transition shadow-sm">
-                            <i class="bi bi-magic mr-1"></i> Generate Summary
-                        </button>
-                    </div>
-                    <div id="ai-summary-content" class="prose prose-sm text-slate-600 dark:text-dm-300 hidden">
-                        <!-- Summary injected here -->
-                    </div>
-                    <div id="summary-loading" class="hidden flex items-center gap-2 text-slate-500 dark:text-dm-400 text-sm">
-                        <div class="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin">
-                        </div>
-                        Sedang meringkas...
-                    </div>
-                </div>
-
-                <!-- Chat Interface -->
-                <div class="border border-slate-200 dark:border-dm-600 rounded-xl overflow-hidden">
-                    <div id="chat-history" class="h-[30vh] overflow-y-auto p-4 bg-slate-50 dark:bg-dm-700 flex flex-col gap-3">
-                        <div class="flex gap-3">
+                        <!-- Mobile: Show placeholder with "View Interactive" button -->
+                        <div class="md:hidden">
                             <div
-                                class="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
-                                <i class="bi bi-robot"></i>
+                                class="aspect-[4/3] bg-slate-100 dark:bg-dm-600 flex flex-col items-center justify-center p-6 text-center viz-placeholder-{{ loop.index }}">
+                                <i class="bi bi-graph-up text-4xl text-slate-300 dark:text-dm-500 mb-3"></i>
+                                <p class="text-sm text-slate-500 dark:text-dm-400 mb-4">Visualisasi interaktif tersedia
+                                </p>
+                                <button
+                                    onclick="openVizFocusMode({{ loop.index }}, '{{ url_for('viz_proxy', url=viz.url) }}')"
+                                    class="px-5 py-2.5 bg-slate-900 dark:bg-dm-100 text-white dark:text-dm-950 text-sm font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-dm-200 transition flex items-center gap-2">
+                                    <i class="bi bi-arrows-fullscreen"></i> Lihat Visualisasi Interaktif
+                                </button>
+                                <p class="text-xs text-slate-400 dark:text-dm-400 mt-3">Ketuk untuk mode fokus (zoom &
+                                    pan)
+                                </p>
                             </div>
-                            <div
-                                class="bg-white dark:bg-dm-800 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-dm-200 max-w-[85%]">
-                                Halo! Saya Vercax, AI dari Asymptra Labs. Ada yang ingin ditanyakan tentang data di
-                                artikel
-                                ini?
+                        </div>
+
+                        <!-- Desktop: Show iframe directly -->
+                        <div class="hidden md:block">
+                            <div id="vizLoading-{{ loop.index }}"
+                                class="absolute inset-0 flex items-center justify-center bg-white dark:bg-dm-800 z-10">
+                                <div class="text-center">
+                                    <div
+                                        class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-slate-200 dark:border-dm-600 border-t-slate-600 dark:border-t-dm-300 mb-2">
+                                    </div>
+                                    <p class="text-xs text-slate-400 dark:text-dm-400">Memuat visualisasi...</p>
+                                </div>
+                            </div>
+                            <div class="h-[550px]">
+                                <iframe data-src="{{ url_for('viz_proxy', url=viz.url) }}"
+                                    class="w-full h-full border-0 viz-iframe"
+                                    onload="this.dataset.loaded && document.getElementById('vizLoading-{{ loop.index }}').classList.add('hidden')"
+                                    loading="lazy"></iframe>
                             </div>
                         </div>
                     </div>
-                    <div class="p-3 bg-white dark:bg-dm-800 border-t border-slate-200 dark:border-dm-600 flex gap-2">
-                        <input type="text" id="chat-input"
-                            class="flex-1 px-4 py-2 border border-slate-200 dark:border-dm-600 dark:bg-dm-700 dark:text-dm-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            placeholder="Tanya tentang insight data...">
-                        <button onclick="sendChat()" id="btn-send"
-                            class="px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="bi bi-send"></i>
-                        </button>
-                    </div>
                 </div>
-            </div>
+                {% endfor %}
+            </section>
+            {% endif %}
 
-            {% else %}
-            <div
-                class="mt-8 bg-gradient-to-br from-brand-600 to-indigo-600 dark:from-brand-700 dark:to-indigo-700 rounded-2xl shadow-lg p-8 text-center text-white">
+            <!-- Action Bar - Static on mobile, sticky on desktop -->
+            <div class="md:top-24 z-30 mb-8">
                 <div
-                    class="w-16 h-16 bg-white/20 dark:bg-dm-700/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="bi bi-robot text-3xl"></i>
+                    class="bg-white/90 dark:bg-dm-800/90 backdrop-blur-md border border-slate-200 dark:border-dm-600 shadow-sm rounded-xl p-2 flex flex-wrap justify-center gap-1 md:gap-2 max-w-fit mx-auto">
+
+
+
+                    <!-- primary ACTIONS -->
+                    {% if post.data_url %}
+                    <button onclick="previewData('{{ post.data_url }}')"
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-dm-200 bg-slate-50 dark:bg-dm-700 hover:bg-slate-100 dark:hover:bg-dm-600 transition flex items-center gap-2">
+                        <i class="bi bi-table"></i> Preview Data
+                    </button>
+                    {% endif %}
+
+                    {% if post.source_link %}
+                    <a href="{{ post.source_link }}" target="_blank" rel="noopener noreferrer"
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-dm-200 bg-slate-50 dark:bg-dm-700 hover:bg-slate-100 dark:hover:bg-dm-600 transition flex items-center gap-2">
+                        <i class="bi bi-box-arrow-up-right"></i> Sumber
+                    </a>
+                    {% endif %}
+
+                    <a href="#ai-chat"
+                        class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-800 dark:text-dm-200 bg-slate-200 dark:bg-dm-600 hover:bg-slate-300 dark:hover:bg-dm-500 shadow-md shadow-slate-300/40 dark:shadow-black/20 transition flex items-center gap-2">
+                        <i class="bi bi-chat-dots-fill"></i> Vercax AI
+                    </a>
+                    <!-- CTA -->
+                    {% if post.petasight_link %}
+                    <a href="{{ post.petasight_link }}" target="_blank" rel="noopener noreferrer"
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition flex items-center gap-2">
+                        <i class="bi bi-map-fill"></i> Petasight
+                    </a>
+                    {% endif %}
+                    <!-- secondary MENU -->
+                    <div class="relative group">
+                        <button
+                            class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-dm-300 hover:bg-slate-50 dark:hover:bg-dm-700 transition flex items-center gap-2">
+                            <i class="bi bi-three-dots"></i> Lainnya
+                        </button>
+
+                        <div
+                            class="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-dm-800 rounded-xl shadow-xl border border-slate-100 dark:border-dm-600 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+
+                            <a href="#content"
+                                class="px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-dm-200 hover:bg-slate-50 dark:hover:bg-dm-700 flex items-center gap-2">
+                                <i class="bi bi-text-paragraph"></i> Baca Artikel
+                            </a>
+
+                            <!-- Font Switcher -->
+                            <div class="mt-1 border-t border-slate-100 dark:border-dm-600 pt-1">
+                                <div
+                                    class="px-3 py-2 text-xs font-semibold text-slate-400 dark:text-dm-400 uppercase tracking-wider">
+                                    Tampilan
+                                </div>
+                                <div id="font-options-container">
+                                    <!-- injected by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
                 </div>
-                <h2 class="text-2xl font-display font-bold mb-2">Buka Vercax AI</h2>
-                <p class="text-brand-100 dark:text-brand-300 mb-6 max-w-lg mx-auto">Dapatkan ringkasan instan dan tanya jawab interaktif
-                    tentang
-                    data di artikel ini. Daftar gratis sekarang!</p>
-                <div class="flex gap-4 justify-center">
-                    <a href="{{ url_for('auth.register') }}"
-                        class="px-6 py-3 bg-white dark:bg-dm-800 text-brand-600 dark:text-brand-400 font-semibold rounded-xl hover:bg-brand-50 dark:hover:bg-dm-700 transition shadow-lg">Daftar
-                        Akun</a>
-                    <a href="{{ url_for('auth.login', next=request.path) }}"
-                        class="px-6 py-3 bg-brand-700/50 text-white font-semibold rounded-xl hover:bg-brand-700 transition backdrop-blur-sm border border-brand-500">Masuk</a>
+            </div>
+
+
+            <!-- Content - Paper/Canvas Style -->
+            <div
+                class="bg-[#FFFDF9] dark:bg-dm-800 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 ring-1 ring-slate-100 dark:ring-dm-600 p-6 sm:p-10 md:p-12">
+                <div id="content" style="font-family: var(--article-font, var(--font-body))"
+                    class="prose prose-lg prose-slate dark:prose-invert max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-brand-600 dark:prose-a:text-brand-400 hover:prose-a:text-brand-700 dark:hover:prose-a:text-brand-300 prose-img:rounded-2xl">
+                    {{ post.content_html|safe }}
                 </div>
+            </div>
+
+            <!-- AI Assistant Section -->
+            <div id="ai-chat" class="scroll-mt-24 transition-all duration-300">
+                {% if session.get('user_id') %}
+
+                <div id="vercax-container"
+                    class="mt-8 bg-white dark:bg-dm-800 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 ring-1 ring-slate-100 dark:ring-dm-700 overflow-hidden transition-all duration-300">
+
+                    <!-- Header bar -->
+                    <div
+                        class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-dm-700 bg-slate-50/50 dark:bg-dm-900/30">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
+                                <i class="bi bi-robot text-base"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-semibold text-slate-800 dark:text-dm-100 leading-none">Vercax AI
+                                </h2>
+                                <p class="text-[10px] text-slate-400 dark:text-dm-500 mt-0.5">Asisten Data</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="hidden sm:inline-flex px-2.5 py-1 bg-slate-100 dark:bg-dm-700 text-slate-500 dark:text-dm-400 text-[10px] font-medium rounded-full"
+                                id="ai-counter-badge">
+                                Memuat...
+                            </span>
+                            <button onclick="toggleImmersiveMode()"
+                                class="p-1.5 rounded-lg text-slate-400 dark:text-dm-500 hover:text-slate-600 dark:hover:text-dm-300 hover:bg-slate-100 dark:hover:bg-dm-700 transition"
+                                title="Mode Imersif">
+                                <i class="bi bi-arrows-fullscreen text-sm" id="immersive-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar: Summary, Quiz, Thinking -->
+                    <!-- Toolbar: Summary, Quiz, Thinking -->
+                    <div
+                        class="flex items-center gap-2 px-4 py-3 border-b border-slate-100 dark:border-dm-700 bg-white dark:bg-dm-800 overflow-x-auto scrollbar-hide">
+                        <!-- Summary Button -->
+                        <button onclick="generateSummary()" id="btn-summary"
+                            class="group inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 border border-brand-100 dark:border-brand-900/50 rounded-full transition-all whitespace-nowrap shadow-sm hover:shadow">
+                            <i class="bi bi-magic text-sm group-hover:rotate-12 transition-transform"></i>
+                            <span>Ringkasan</span>
+                        </button>
+
+                        <!-- Quiz Button -->
+                        <button onclick="startQuiz()" id="btn-quiz"
+                            class="group inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-100 dark:border-amber-900/50 rounded-full transition-all whitespace-nowrap shadow-sm hover:shadow">
+                            <i class="bi bi-puzzle text-sm group-hover:-rotate-12 transition-transform"></i>
+                            <span>Quiz</span>
+                        </button>
+
+                        <div class="h-6 w-px bg-slate-200 dark:bg-dm-600 mx-2"></div>
+
+                        <!-- Deep Think Toggle -->
+                        <label class="relative inline-flex items-center cursor-pointer group">
+                            <input type="checkbox" id="thinking-toggle" class="sr-only peer">
+                            <div
+                                class="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 dark:border-dm-600 bg-slate-50 dark:bg-dm-700/50 text-slate-500 dark:text-dm-400 peer-checked:bg-indigo-50 peer-checked:text-indigo-600 peer-checked:border-indigo-200 dark:peer-checked:bg-indigo-900/20 dark:peer-checked:text-indigo-400 dark:peer-checked:border-indigo-900/50 transition-all select-none">
+                                <i class="bi bi-cpu text-sm transition-colors"></i>
+                                <span class="text-xs font-semibold">Deep Think</span>
+                                <div
+                                    class="w-2 h-2 rounded-full bg-slate-300 dark:bg-dm-500 peer-checked:bg-indigo-500 peer-checked:animate-pulse ml-1 transition-colors">
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div id="chat-history"
+                        class="overflow-y-auto px-5 py-4 flex flex-col gap-4 scroll-smooth h-[420px] lg:h-[480px] bg-white dark:bg-dm-800">
+                        <!-- Welcome -->
+                        <div class="flex flex-col items-center justify-center h-full text-center py-12"
+                            id="welcome-state">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-500 dark:text-brand-400 mb-3">
+                                <i class="bi bi-robot text-xl"></i>
+                            </div>
+                            <p class="text-sm text-slate-800 dark:text-dm-200 font-medium mb-1">Halo, ada yang bisa
+                                dibantu?</p>
+                            <p class="text-xs text-slate-400 dark:text-dm-500 max-w-sm">Tanyakan tentang data di artikel
+                                ini, atau gunakan Ringkasan/Quiz di atas.</p>
+                        </div>
+                    </div>
+
+                    <!-- Input bar -->
+                    <div class="px-4 py-3 border-t border-slate-100 dark:border-dm-700 bg-white dark:bg-dm-800">
+                        <div class="flex items-end gap-2">
+                            <textarea id="chat-input" rows="1"
+                                class="flex-1 bg-slate-100 dark:bg-dm-700 border-0 rounded-xl text-sm text-slate-800 dark:text-dm-100 placeholder:text-slate-400 dark:placeholder:text-dm-500 focus:ring-2 focus:ring-brand-500/30 py-2.5 px-4 resize-none max-h-32 overflow-y-auto leading-relaxed"
+                                placeholder="Ketik pertanyaan..."
+                                onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChat();}"
+                                oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,128)+'px'"></textarea>
+                            <button onclick="sendChat()" id="btn-send"
+                                class="p-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center w-10 h-10 shrink-0">
+                                <i class="bi bi-send-fill text-sm"></i>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 dark:text-dm-500 mt-1.5 text-center">AI dapat membuat
+                            kesalahan. Periksa kembali informasi penting.</p>
+                    </div>
+
+                    <!-- Hidden compat elements -->
+                    <div class="hidden" id="ai-summary-content"></div>
+                    <div class="hidden" id="summary-loading"></div>
+                    <div class="hidden" id="quiz-description"></div>
+                </div>
+
+                <!-- Quiz Modal -->
+                <div id="quiz-modal" class="fixed inset-0 z-50 hidden">
+                    <div class="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+                        onclick="closeQuizModal()"></div>
+                    <div
+                        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg bg-white dark:bg-dm-800 rounded-2xl shadow-2xl ring-1 ring-slate-200 dark:ring-dm-600 flex flex-col max-h-[90vh] overflow-hidden">
+                        <!-- Modal header -->
+                        <div
+                            class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-dm-700">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-puzzle text-brand-500 text-sm"></i>
+                                <span class="text-sm font-semibold text-slate-800 dark:text-dm-100">Quiz</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="minimizeQuiz()"
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                                    title="Minimize - baca artikel dulu">
+                                    <i class="bi bi-dash-lg text-sm"></i>
+                                </button>
+                                <button onclick="closeQuizModal()"
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-dm-200 hover:bg-slate-100 dark:hover:bg-dm-700 transition"
+                                    title="Tutup quiz">
+                                    <i class="bi bi-x-lg text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Modal body -->
+                        <div class="flex-1 overflow-y-auto p-5" id="quiz-modal-body">
+                            <!-- Quiz Loading -->
+                            <div id="quiz-loading" class="hidden flex flex-col items-center justify-center py-12 gap-3">
+                                <div
+                                    class="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin">
+                                </div>
+                                <p class="text-xs text-slate-500 dark:text-dm-400">Membuat soal...</p>
+                            </div>
+                            <!-- Quiz Container -->
+                            <div id="quiz-container" class="hidden">
+                                <div
+                                    class="flex items-center justify-between text-xs text-slate-400 dark:text-dm-500 mb-3">
+                                    <span id="quiz-progress-text">1/5</span>
+                                    <span id="quiz-score-text">Skor: 0</span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-dm-700 rounded-full h-1 mb-5">
+                                    <div id="quiz-progress-bar"
+                                        class="bg-brand-500 h-1 rounded-full transition-all duration-500"
+                                        style="width:20%"></div>
+                                </div>
+                                <div id="quiz-question-card">
+                                    <p id="quiz-question-text"
+                                        class="text-sm font-medium text-slate-800 dark:text-dm-100 mb-4 leading-relaxed">
+                                    </p>
+                                    <div id="quiz-options" class="space-y-2"></div>
+                                </div>
+                                <div id="quiz-explanation" class="hidden mt-3 p-3 rounded-lg border text-xs"></div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="nextQuestion()" id="btn-next-question"
+                                        class="hidden px-4 py-2 bg-brand-600 text-white text-xs font-medium rounded-lg hover:bg-brand-700 transition">
+                                        Selanjutnya <i class="bi bi-arrow-right ml-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Quiz Results -->
+                            <div id="quiz-results" class="hidden text-center py-8">
+                                <div id="quiz-result-icon" class="text-4xl mb-2"></div>
+                                <h4 id="quiz-result-title"
+                                    class="text-sm font-bold text-slate-800 dark:text-dm-100 mb-1"></h4>
+                                <p id="quiz-result-score"
+                                    class="text-2xl font-bold text-brand-600 dark:text-brand-400 mb-3"></p>
+                                <button onclick="resetQuiz()"
+                                    class="text-xs text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 underline">Ulangi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div
+                    class="mt-8 bg-gradient-to-br from-brand-600 to-indigo-600 dark:from-brand-700 dark:to-indigo-700 rounded-2xl shadow-lg p-8 text-center text-white">
+                    <div
+                        class="w-16 h-16 bg-white/20 dark:bg-dm-700/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="bi bi-robot text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-display font-bold mb-2">Buka Vercax AI</h2>
+                    <p class="text-brand-100 dark:text-brand-300 mb-6 max-w-lg mx-auto">Dapatkan ringkasan instan dan
+                        tanya jawab interaktif tentang data di artikel ini.</p>
+                    <div class="flex gap-4 justify-center">
+                        <a href="{{ url_for('auth.register') }}"
+                            class="px-6 py-3 bg-white dark:bg-dm-800 text-brand-600 dark:text-brand-400 font-semibold rounded-xl hover:bg-brand-50 dark:hover:bg-dm-700 transition shadow-lg">Daftar
+                            Akun</a>
+                        <a href="{{ url_for('auth.login', next=request.path) }}"
+                            class="px-6 py-3 bg-brand-700/50 text-white font-semibold rounded-xl hover:bg-brand-700 transition backdrop-blur-sm border border-brand-500">Masuk</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+
+        <!-- Source Footer -->
+        {% if post.source_name or post.source_link %}
+        <div class="mt-16 pt-8 border-t border-slate-100 dark:border-dm-600 max-w-4xl mx-auto">
+            <div class="bg-slate-50 dark:bg-dm-700 rounded-2xl p-6 border border-slate-100 dark:border-dm-600">
+                <h3 class="font-display font-semibold text-slate-900 dark:text-dm-100 mb-2 flex items-center gap-2">
+                    <i class="bi bi-info-circle text-brand-500"></i> Referensi Data
+                </h3>
+                <p class="text-sm text-slate-500 dark:text-dm-400 mb-0">
+                    Analisis ini didasarkan pada data dari
+                    {% if post.source_name %}
+                    <span class="font-medium text-slate-700 dark:text-dm-200">{{ post.source_name }}</span>.
+                    {% endif %}
+
+                    {% if post.source_link %}
+                    <a href="{{ post.source_link }}" target="_blank"
+                        class="block mt-2 text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 truncate">
+                        {{ post.source_link }}
+                    </a>
+                    {% endif %}
+                </p>
             </div>
         </div>
         {% endif %}
-    </div>
 
-
-    <!-- Source Footer -->
-    {% if post.source_name or post.source_link %}
-    <div class="mt-16 pt-8 border-t border-slate-100 dark:border-dm-600 max-w-4xl mx-auto">
-        <div class="bg-slate-50 dark:bg-dm-700 rounded-2xl p-6 border border-slate-100 dark:border-dm-600">
-            <h3 class="font-display font-semibold text-slate-900 dark:text-dm-100 mb-2 flex items-center gap-2">
-                <i class="bi bi-info-circle text-brand-500"></i> Referensi Data
-            </h3>
-            <p class="text-sm text-slate-500 dark:text-dm-400 mb-0">
-                Analisis ini didasarkan pada data dari
-                {% if post.source_name %}
-                <span class="font-medium text-slate-700 dark:text-dm-200">{{ post.source_name }}</span>.
-                {% endif %}
-
-                {% if post.source_link %}
-                <a href="{{ post.source_link }}" target="_blank"
-                    class="block mt-2 text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 truncate">
-                    {{ post.source_link }}
-                </a>
-                {% endif %}
-            </p>
+        <!-- Back Link -->
+        <div class="mt-12 text-center">
+            <a href="{{ url_for('index') }}"
+                class="inline-flex items-center gap-2 text-slate-500 dark:text-dm-400 hover:text-brand-600 dark:hover:text-brand-400 transition font-medium">
+                <i class="bi bi-arrow-left"></i> Kembali ke Eksplorasi
+            </a>
         </div>
-    </div>
-    {% endif %}
 
-    <!-- Back Link -->
-    <div class="mt-12 text-center">
-        <a href="{{ url_for('index') }}"
-            class="inline-flex items-center gap-2 text-slate-500 dark:text-dm-400 hover:text-brand-600 dark:hover:text-brand-400 transition font-medium">
-            <i class="bi bi-arrow-left"></i> Kembali ke Eksplorasi
-        </a>
-    </div>
+        </div>
+    </article>
 
-    </div>
-</article>
+    <!-- Data Preview Modal -->
+    <div id="dataModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm transition-opacity opacity-0"
+            id="modalBackdrop"></div>
 
-<!-- Data Preview Modal -->
-<div id="dataModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <!-- Modal Panel -->
+                <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-dm-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl opacity-0 scale-95"
+                    id="modalPanel">
 
-    <div class="fixed inset-0 z-10 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <!-- Modal Panel -->
-            <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-dm-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl opacity-0 scale-95"
-                id="modalPanel">
-
-                <!-- Header -->
-                <div class="bg-white dark:bg-dm-800 px-4 pb-4 pt-5 sm:p-6 border-b border-slate-100 dark:border-dm-600 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-display font-bold leading-6 text-slate-900 dark:text-dm-100" id="modal-title">Preview
-                            Data</h3>
-                        <p class="mt-1 text-sm text-slate-500 dark:text-dm-400">Menampilkan 20 baris pertama dari dataset.</p>
-                    </div>
-                    <button type="button" onclick="closeModal()" class="text-slate-400 dark:text-dm-400 hover:text-slate-500 dark:hover:text-dm-400 transition">
-                        <i class="bi bi-x-lg text-xl"></i>
-                    </button>
-                </div>
-
-                <!-- Body -->
-                <div class="px-4 py-4 sm:p-6 bg-slate-50/50 dark:bg-dm-700/50 max-h-[60vh] overflow-auto">
-                    <div id="loadingState" class="hidden text-center py-12">
-                        <div
-                            class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-100 dark:border-brand-900/30 border-t-brand-600 mb-4">
+                    <!-- Header -->
+                    <div
+                        class="bg-white dark:bg-dm-800 px-4 pb-4 pt-5 sm:p-6 border-b border-slate-100 dark:border-dm-600 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-display font-bold leading-6 text-slate-900 dark:text-dm-100"
+                                id="modal-title">Preview
+                                Data</h3>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-dm-400">Menampilkan 20 baris pertama dari
+                                dataset.</p>
                         </div>
-                        <p class="text-sm text-slate-500 dark:text-dm-400 font-medium">Memuat data...</p>
+                        <button type="button" onclick="closeModal()"
+                            class="text-slate-400 dark:text-dm-400 hover:text-slate-500 dark:hover:text-dm-400 transition">
+                            <i class="bi bi-x-lg text-xl"></i>
+                        </button>
                     </div>
 
-                    <div id="errorState" class="hidden text-center py-12">
-                        <div
-                            class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-4">
-                            <i class="bi bi-exclamation-triangle"></i>
+                    <!-- Body -->
+                    <div class="px-4 py-4 sm:p-6 bg-slate-50/50 dark:bg-dm-700/50 max-h-[60vh] overflow-auto">
+                        <div id="loadingState" class="hidden text-center py-12">
+                            <div
+                                class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-100 dark:border-brand-900/30 border-t-brand-600 mb-4">
+                            </div>
+                            <p class="text-sm text-slate-500 dark:text-dm-400 font-medium">Memuat data...</p>
                         </div>
-                        <p class="text-slate-900 dark:text-dm-100 font-medium mb-1">Gagal memuat data</p>
-                        <p class="text-sm text-slate-500 dark:text-dm-400" id="errorMessage">Format file mungkin tidak didukung.</p>
+
+                        <div id="errorState" class="hidden text-center py-12">
+                            <div
+                                class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-4">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <p class="text-slate-900 dark:text-dm-100 font-medium mb-1">Gagal memuat data</p>
+                            <p class="text-sm text-slate-500 dark:text-dm-400" id="errorMessage">Format file mungkin
+                                tidak
+                                didukung.</p>
+                        </div>
+
+                        <div id="tableContainer"
+                            class="overflow-x-auto rounded-lg border border-slate-200 dark:border-dm-600 shadow-sm bg-white dark:bg-dm-800">
+                            <!-- Table will be injected here -->
+                        </div>
                     </div>
 
-                    <div id="tableContainer"
-                        class="overflow-x-auto rounded-lg border border-slate-200 dark:border-dm-600 shadow-sm bg-white dark:bg-dm-800">
-                        <!-- Table will be injected here -->
+                    <!-- Footer -->
+                    <div
+                        class="bg-white dark:bg-dm-800 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100 dark:border-dm-600 gap-3">
+                        <a id="sourceBtn" href="{{ post.source_link }}" target="_blank" link="{{ post.source_link }}"
+                            class="inline-flex w-full justify-center rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-500 sm:w-auto gap-2 items-center transition">
+                            <i class="bi bi-arrow-right"></i> Source Data
+                        </a>
+                        <button type="button" onclick="closeModal()"
+                            class="mt-3 inline-flex w-full justify-center rounded-xl bg-white dark:bg-dm-800 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-dm-100 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-dm-500 hover:bg-slate-50 dark:hover:bg-dm-700 sm:mt-0 sm:w-auto transition">
+                            Tutup
+                        </button>
                     </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="bg-white dark:bg-dm-800 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100 dark:border-dm-600 gap-3">
-                    <a id="sourceBtn" href="{{ post.source_link }}" target="_blank" link="{{ post.source_link }}"
-                        class="inline-flex w-full justify-center rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-500 sm:w-auto gap-2 items-center transition">
-                        <i class="bi bi-arrow-right"></i> Source Data
-                    </a>
-                    <button type="button" onclick="closeModal()"
-                        class="mt-3 inline-flex w-full justify-center rounded-xl bg-white dark:bg-dm-800 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-dm-100 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-dm-500 hover:bg-slate-50 dark:hover:bg-dm-700 sm:mt-0 sm:w-auto transition">
-                        Tutup
-                    </button>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+    {% endblock %}
 
-{% block extra_scripts %}
-<!-- PapaParse for CSV Parsing -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<!-- Marked for Markdown Rendering -->
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    {% block extra_scripts %}
+    <!-- PapaParse for CSV Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Marked for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<script>
-    // Define global variable for external script
-    const CURRENT_POST_ID = {{ post.id }};
-</script>
-<script src="{{ url_for('static', filename='js/detail.js') }}"></script>
-<script src="{{ url_for('static', filename='js/font-manager.js') }}"></script>
-{% endblock %}
+    <script>
+        // Define global variable for external script
+        const CURRENT_POST_ID = {{ post.id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/detail.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/font-manager.js') }}"></script>
+    {% endblock %}
